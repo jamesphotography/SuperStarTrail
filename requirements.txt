@@ -1,0 +1,29 @@
+# SuperStarTrail - 核心依赖
+# Python 3.9+
+
+# GUI 框架
+PyQt5>=5.15.0
+PyQt5-Qt5>=5.15.0
+
+# RAW 图像处理
+rawpy>=0.18.0
+
+# 数值计算和图像处理
+numpy>=1.21.0
+Pillow>=9.0.0
+opencv-python>=4.5.0  # 用于图像对齐功能
+scipy>=1.7.0  # 用于间隔填充和图像处理
+
+# 图像输入输出
+imageio>=2.15.0
+tifffile>=2022.0.0
+
+# 性能优化
+numba>=0.55.0
+
+# 日志和配置
+pyyaml>=6.0
+
+# AI 模型支持 (天空/地景分割 - SegFormer)
+torch>=2.0.0
+transformers>=4.30.0  # Hugging Face Transformers for SegFormer

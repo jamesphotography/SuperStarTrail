@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:markus-enzweiler.de)",
+      "Bash(tree:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(kill:*)",
+      "Read(//Users/jameszhenyu/Desktop/Mark Ma/**)",
+      "Read(//private/tmp/**)",
+      "Bash(source:*)",
+      "Bash(pkill:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//Users/jameszhenyu/Downloads/**)",
+      "Bash(TF_USE_LEGACY_KERAS=1 python:*)",
+      "Bash(brew install:*)",
+      "Bash(git lfs pull:*)",
+      "Bash(git lfs:*)",
+      "Bash(curl -L \"https://www.dropbox.com/scl/fi/pe64gu888zso4289p9uvo/starnet_weights2.zip?rlkey=nyohb9egkntzwxvvig7to3fjs&e=1&dl=1\" -o starnet_weights2.zip)",
+      "Bash(unzip:*)",
+      "Bash(tee:*)",
+      "Bash(find:*)",
+      "WebSearch",
+      "Bash(timeout 3 python:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
