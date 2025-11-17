@@ -30,6 +30,7 @@ env/
 .DS_Store
 .idea/
 .vscode/
+.claude/settings.local.json
 *.swp
 *.swo
 *~
@@ -37,6 +38,7 @@ env/
 # Output files
 test_output*/
 output/
+startrail-test/
 *.tif
 *.tiff
 *.NEF

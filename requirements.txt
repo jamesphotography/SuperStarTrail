@@ -23,7 +23,3 @@ numba>=0.55.0
 
 # 日志和配置
 pyyaml>=6.0
-
-# AI 模型支持 (天空/地景分割 - SegFormer)
-torch>=2.0.0
-transformers>=4.30.0  # Hugging Face Transformers for SegFormer

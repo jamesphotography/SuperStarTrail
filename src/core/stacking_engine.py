@@ -6,6 +6,7 @@
 
 from enum import Enum
 from typing import List, Optional, Callable
+from pathlib import Path
 import numpy as np
 from numba import jit
 
@@ -61,6 +62,8 @@ class StackingEngine:
         enable_gap_filling: bool = False,
         gap_fill_method: str = "morphological",
         gap_size: int = 3,
+        enable_timelapse: bool = False,
+        timelapse_output_path: Optional[Path] = None,
     ):
         """
         初始化堆栈引擎
@@ -71,6 +74,8 @@ class StackingEngine:
             enable_gap_filling: 是否启用间隔填充（消除星轨间隔）
             gap_fill_method: 填充方法 ('linear', 'morphological', 'motion_blur')
             gap_size: 要填充的最大间隔大小（像素）
+            enable_timelapse: 是否生成延时视频
+            timelapse_output_path: 延时视频输出路径
         """
         self.mode = mode
         self.result: Optional[np.ndarray] = None
@@ -83,6 +88,17 @@ class StackingEngine:
         self.gap_filler = None
         self.gap_fill_method = gap_fill_method
         self.gap_size = gap_size
+
+        # 延时视频生成器
+        self.enable_timelapse = enable_timelapse
+        self.timelapse_generator = None
+        if enable_timelapse and timelapse_output_path:
+            from .timelapse_generator import TimelapseGenerator
+            self.timelapse_generator = TimelapseGenerator(
+                output_path=timelapse_output_path,
+                fps=25,
+                resolution=(3840, 2160)
+            )
 
         # 如果启用对齐，初始化对齐器
         if enable_alignment:
@@ -172,6 +188,10 @@ class StackingEngine:
         # 调用进度回调
         if progress_callback:
             progress_callback(self.count)
+
+        # 如果启用延时视频，保存当前帧
+        if self.enable_timelapse and self.timelapse_generator is not None:
+            self.timelapse_generator.add_frame(self.result.astype(np.uint16))
 
         # 返回当前结果的简单副本，不应用填充
         # 填充只应该在最终 get_result() 时应用一次
@@ -268,6 +288,21 @@ class StackingEngine:
         if not 0.0 <= factor <= 1.0:
             raise ValueError("衰减因子必须在 0.0 到 1.0 之间")
         self.comet_fade_factor = factor
+
+    def finalize_timelapse(self, cleanup: bool = True) -> bool:
+        """
+        生成最终的延时视频
+
+        Args:
+            cleanup: 是否删除临时帧文件
+
+        Returns:
+            是否成功
+        """
+        if self.timelapse_generator is None:
+            return False
+
+        return self.timelapse_generator.generate_video(cleanup=cleanup)
 
 
 class DarkFrameSubtractor:

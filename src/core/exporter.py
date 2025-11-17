@@ -15,11 +15,37 @@ class ImageExporter:
     """图像导出器"""
 
     @staticmethod
+    def apply_stretch(image: np.ndarray, p_low: float = 1.0, p_high: float = 99.5) -> np.ndarray:
+        """
+        应用百分位数拉伸到图像
+
+        Args:
+            image: 输入图像 (uint16)
+            p_low: 低百分位数 (默认 1%)
+            p_high: 高百分位数 (默认 99.5%)
+
+        Returns:
+            拉伸后的图像 (uint16)
+        """
+        if image.dtype != np.uint16:
+            return image
+
+        # 计算百分位数
+        low_val = np.percentile(image, p_low)
+        high_val = np.percentile(image, p_high)
+
+        # 拉伸到 0-65535
+        stretched = np.clip((image - low_val) / (high_val - low_val) * 65535, 0, 65535)
+
+        return stretched.astype(np.uint16)
+
+    @staticmethod
     def save_tiff(
         image: np.ndarray,
         output_path: Path,
         bits: int = 16,
         compression: str = "lzw",
+        apply_stretch: bool = True,
     ) -> bool:
         """
         保存为 TIFF 格式
@@ -29,11 +55,17 @@ class ImageExporter:
             output_path: 输出路径
             bits: 位深度 (8, 16, 32)
             compression: 压缩方式 ('none', 'lzw', 'jpeg', 'deflate')
+            apply_stretch: 是否应用百分位数拉伸（默认 True）
 
         Returns:
             保存是否成功
         """
         try:
+            # 如果需要，先应用拉伸
+            if apply_stretch and image.dtype == np.uint16:
+                print("应用亮度拉伸 (1%-99.5%)...")
+                image = ImageExporter.apply_stretch(image)
+
             if bits == 8:
                 # 转换为 8-bit
                 if image.dtype == np.uint16:
