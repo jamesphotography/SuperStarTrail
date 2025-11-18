@@ -148,10 +148,30 @@ TRANSLATIONS = {
         "dialog_error_msg": "处理失败:\n{error}",
 
         # 工具提示
+        "tooltip_select_folder": "选择包含星轨照片的文件夹\n支持格式：RAW (CR2, NEF, ARW等)、TIFF、JPG、PNG",
         "tooltip_comet_tail": "控制彗星尾巴的长度\n短: 快速衰减\n中: 中等衰减\n长: 缓慢衰减",
         "tooltip_brightness": "自动拉伸图像亮度范围以增强对比度",
         "tooltip_gap_filling": "使用形态学算法填充星轨间的断点，产生连续星轨效果",
         "tooltip_timelapse": "生成星轨堆栈过程的延时视频（MP4格式）",
+
+        # 对话框按钮
+        "button_ok": "确定",
+        "button_cancel": "取消",
+        "button_close": "关闭",
+
+        # 消息对话框
+        "msg_complete_title": "完成",
+        "msg_complete_text": "星轨合成完成！\n\n文件已保存至:\n{path}",
+        "msg_save_failed_title": "警告",
+        "msg_save_failed_text": "星轨合成完成，但保存文件失败",
+        "msg_error_title": "错误",
+        "msg_error_text": "处理失败:\n{error}",
+        "msg_no_output_dir": "输出目录不存在",
+        "msg_no_video_file": "延时视频文件不存在",
+        "msg_no_result": "没有可保存的结果\n请先处理图片",
+        "msg_save_success": "文件已保存至:\n{path}",
+        "msg_save_error": "保存文件失败",
+        "msg_save_exception": "保存文件时出错:\n{error}",
 
         # 关于窗口
         "about": "关于",
@@ -351,10 +371,30 @@ TRANSLATIONS = {
         "dialog_error_msg": "Processing failed:\n{error}",
 
         # Tooltips
+        "tooltip_select_folder": "Select folder containing star trail photos\nSupported formats: RAW (CR2, NEF, ARW, etc.), TIFF, JPG, PNG",
         "tooltip_comet_tail": "Control comet tail length\nShort: Fast decay\nMedium: Medium decay\nLong: Slow decay",
         "tooltip_brightness": "Automatically stretch image brightness range to enhance contrast",
         "tooltip_gap_filling": "Fill gaps in star trails using morphological algorithms for continuous trails",
         "tooltip_timelapse": "Generate timelapse video (MP4) of the stacking process",
+
+        # Dialog buttons
+        "button_ok": "OK",
+        "button_cancel": "Cancel",
+        "button_close": "Close",
+
+        # Message dialogs
+        "msg_complete_title": "Complete",
+        "msg_complete_text": "Star trail stacking completed!\n\nFiles saved to:\n{path}",
+        "msg_save_failed_title": "Warning",
+        "msg_save_failed_text": "Star trail stacking completed, but failed to save files",
+        "msg_error_title": "Error",
+        "msg_error_text": "Processing failed:\n{error}",
+        "msg_no_output_dir": "Output directory does not exist",
+        "msg_no_video_file": "Timelapse video file does not exist",
+        "msg_no_result": "No result to save\nPlease process images first",
+        "msg_save_success": "File saved to:\n{path}",
+        "msg_save_error": "Failed to save file",
+        "msg_save_exception": "Error occurred while saving file:\n{error}",
 
         # About window
         "about": "About",

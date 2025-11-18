@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
 
         self.btn_select_folder = QPushButton(f"📁 {self.tr.tr('select_directory')}")
         self.btn_select_folder.clicked.connect(self.select_folder)
-        self.btn_select_folder.setToolTip("选择包含星轨照片的文件夹\n支持格式：RAW (CR2, NEF, ARW等)、TIFF、JPG、PNG")
+        self.btn_select_folder.setToolTip(self.tr.tr('tooltip_select_folder'))
         self.btn_select_folder.setStyleSheet(PRIMARY_BUTTON_STYLE)
         file_layout.addWidget(self.btn_select_folder)
 
@@ -925,21 +925,33 @@ class MainWindow(QMainWindow):
             # 播放完成音效
             self.play_completion_sound()
 
-            QMessageBox.information(self, "完成", f"星轨合成完成！\n\n文件已保存至:\n{output_dir}")
+            QMessageBox.information(
+                self,
+                self.tr.tr("msg_complete_title"),
+                self.tr.tr("msg_complete_text").format(path=output_dir)
+            )
         else:
             self.label_status.setText("❌ 合成完成但保存失败")
             self.label_status.setStyleSheet("padding: 5px; background: #f8d7da; border-radius: 3px; color: #721c24;")
-            QMessageBox.warning(self, "警告", "星轨合成完成，但保存文件失败")
+            QMessageBox.warning(
+                self,
+                self.tr.tr("msg_save_failed_title"),
+                self.tr.tr("msg_save_failed_text")
+            )
 
     def processing_error(self, error_msg: str):
         """处理错误"""
         self.btn_start.setEnabled(True)
         self.btn_stop.setEnabled(False)
 
-        self.label_status.setText("❌ 处理失败")
+        self.label_status.setText(self.tr.tr("failed"))
         self.label_status.setStyleSheet("padding: 5px; background: #f8d7da; border-radius: 3px; color: #721c24;")
 
-        QMessageBox.critical(self, "错误", f"处理失败:\n{error_msg}")
+        QMessageBox.critical(
+            self,
+            self.tr.tr("msg_error_title"),
+            self.tr.tr("msg_error_text").format(error=error_msg)
+        )
 
     def open_output_dir(self):
         """打开输出目录"""

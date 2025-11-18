@@ -141,8 +141,8 @@ class PreferencesDialog(QDialog):
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
-        button_box.button(QDialogButtonBox.Ok).setText("确定")
-        button_box.button(QDialogButtonBox.Cancel).setText("取消")
+        button_box.button(QDialogButtonBox.Ok).setText(self.tr.tr("button_ok"))
+        button_box.button(QDialogButtonBox.Cancel).setText(self.tr.tr("button_cancel"))
         layout.addWidget(button_box)
 
         self.setLayout(layout)

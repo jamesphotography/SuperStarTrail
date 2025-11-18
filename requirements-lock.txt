@@ -1,0 +1,32 @@
+# SuperStarTrail - 锁定版本依赖
+# 此文件包含精确的包版本，确保构建可重复性
+# 使用方法: pip install -r requirements-lock.txt
+# 生成日期: 2025-01-18
+
+# GUI 框架
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.17
+PyQt5-sip==12.17.1
+
+# RAW 图像处理
+rawpy==0.25.1
+
+# 数值计算和图像处理
+numpy==2.2.6
+Pillow==11.2.1
+opencv-python==4.12.0.88
+scipy==1.16.2
+
+# 图像输入输出
+imageio==2.37.0
+tifffile==2025.10.4
+
+# 性能优化
+numba==0.62.1
+llvmlite==0.44.0
+
+# 日志和配置
+PyYAML==6.0.2
+
+# 其他运行时依赖
+packaging==24.3

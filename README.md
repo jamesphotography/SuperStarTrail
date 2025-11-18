@@ -56,8 +56,16 @@ source .venv/bin/activate
 .venv\Scripts\activate
 
 # 安装依赖
+# 开发环境：使用宽松版本约束
 pip install -r requirements.txt
+
+# 或者使用锁定版本（确保可重复构建）
+pip install -r requirements-lock.txt
 ```
+
+**注意**:
+- `requirements.txt` - 使用宽松版本约束（`>=`），适合开发环境
+- `requirements-lock.txt` - 锁定精确版本，确保可重复构建，适合生产部署
 
 #### 方式 2: 下载可执行文件（即将推出）
 

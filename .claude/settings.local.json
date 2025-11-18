@@ -51,7 +51,8 @@
       "Bash(SIGNING_IDENTITY=\"Developer ID Application: James Zhen Yu (JWR6FDB52H)\" APPLE_ID=\"James@jamesphotography.com.au\" APP_SPECIFIC_PASSWORD=\"iocf-bcmw-xxgc-kkvp\" TEAM_ID=\"JWR6FDB52H\" ./build_and_sign.sh)",
       "Bash(pyinstaller:*)",
       "Bash(open:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(pip freeze:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,27 +1,25 @@
-# SuperStarTrail - 开发依赖
+# 开发工具依赖
+# 安装: pip install -r requirements-dev.txt
 
-# 包含核心依赖
--r requirements.txt
+# 代码格式化
+black==24.1.1
+isort==5.13.2
 
-# 图像对齐和高级处理
-opencv-python>=4.5.0
+# 代码检查
+flake8==7.0.0
+pylint==3.0.3
 
-# 测试框架
-pytest>=7.0.0
-pytest-cov>=4.0.0
-pytest-qt>=4.0.0
+# 类型检查
+mypy==1.8.0
 
-# 代码质量
-black>=22.0.0
-pylint>=2.12.0
-flake8>=4.0.0
-mypy>=0.950
+# Git hooks
+pre-commit==3.6.0
 
-# 打包工具
-PyInstaller>=5.0.0
-setuptools>=65.0.0
-wheel>=0.37.0
+# 测试
+pytest==7.4.4
+pytest-cov==4.1.0
+pytest-qt==4.3.1
 
 # 文档生成
-sphinx>=4.5.0
-sphinx-rtd-theme>=1.0.0
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
