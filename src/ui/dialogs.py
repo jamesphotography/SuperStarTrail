@@ -20,10 +20,12 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QWidget,
     QFormLayout,
+    QMessageBox,
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QIcon
 from utils.settings import get_settings
+from i18n import get_translator
 
 
 class AboutDialog(QDialog):
@@ -114,6 +116,7 @@ class PreferencesDialog(QDialog):
         self.setWindowTitle("偏好设置")
         self.setFixedSize(550, 400)
         self.settings = get_settings()
+        self.tr = get_translator()
         self.init_ui()
         self.load_settings()
 
@@ -155,12 +158,10 @@ class PreferencesDialog(QDialog):
         lang_layout = QFormLayout()
 
         self.language_combo = QComboBox()
-        self.language_combo.addItems(["简体中文 (Simplified Chinese)", "English (英语)"])
-        self.language_combo.setEnabled(False)
-        self.language_combo.setToolTip("语言切换功能将在未来版本中启用\nLanguage switching will be enabled in future versions")
-        lang_layout.addRow("界面语言:", self.language_combo)
+        self.language_combo.addItems(["简体中文 (Simplified Chinese)", "English"])
+        lang_layout.addRow("界面语言 / Language:", self.language_combo)
 
-        lang_note = QLabel("注：语言切换功能即将推出\nNote: Language switching coming soon")
+        lang_note = QLabel("注：语言设置将在重启应用后生效\nNote: Language changes take effect after restart")
         lang_note.setStyleSheet("color: #666; font-size: 11px;")
         lang_layout.addRow("", lang_note)
 
@@ -187,36 +188,39 @@ class PreferencesDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        # 帮助文本
-        help_text = QLabel(
-            "<h3>使用说明</h3>"
-            "<p><b>1. 选择文件</b><br>"
-            "点击「选择图片目录」，选择包含星轨照片的文件夹。<br>"
-            "支持格式：RAW (CR2, NEF, ARW, DNG等)、TIFF、JPG、PNG。</p>"
+        # 帮助文本 - 使用翻译系统
+        help_html = f"""
+        <h3>{self.tr.tr('help_title')}</h3>
 
-            "<p><b>2. 选择模式</b><br>"
-            "• <b>常规星轨</b>：传统的星轨叠加效果<br>"
-            "• <b>彗星星轨</b>：创造渐变尾巴，模拟彗星划过天空的效果</p>"
+        <p><b>{self.tr.tr('help_step1_title')}</b><br>
+        {self.tr.tr('help_step1_content')}</p>
 
-            "<p><b>3. 调整参数</b><br>"
-            "• <b>彗星尾巴长度</b>：短/中/长，控制尾巴的渐变长度<br>"
-            "• <b>RAW参数</b>：曝光补偿和白平衡调整<br>"
-            "• <b>间隙填充</b>：消除由于拍摄间隔产生的星轨断点<br>"
-            "• <b>延时视频</b>：生成展示星轨形成过程的 4K 25FPS 视频</p>"
+        <p><b>{self.tr.tr('help_step2_title')}</b><br>
+        {self.tr.tr('help_step2_content')}</p>
 
-            "<p><b>4. 开始处理</b><br>"
-            "点击「开始处理」，等待处理完成。<br>"
-            "结果会自动保存到：原片目录/彗星星轨/</p>"
+        <p><b>{self.tr.tr('help_step3_title')}</b><br>
+        {self.tr.tr('help_step3_content')}</p>
 
-            "<hr>"
+        <p><b>{self.tr.tr('help_step4_title')}</b><br>
+        {self.tr.tr('help_step4_content')}</p>
 
-            "<p style='color: #666; font-size: 11px;'>"
-            "<b>提示：</b><br>"
-            "• 推荐使用 RAW 格式以获得最佳画质<br>"
-            "• 彗星模式「中」尾巴长度适合大多数场景<br>"
-            "• 延时视频会额外增加 1-2 分钟处理时间<br>"
-            "• 100 张照片约生成 3-4 秒视频</p>"
-        )
+        <p><b>{self.tr.tr('help_step5_title')}</b><br>
+        {self.tr.tr('help_step5_content')}</p>
+
+        <hr>
+
+        <p><b>{self.tr.tr('help_tips_title')}</b><br>
+        <span style='color: #666; font-size: 11px;'>
+        {self.tr.tr('help_tips_content')}
+        </span></p>
+
+        <p><b>{self.tr.tr('help_output_title')}</b><br>
+        <span style='color: #666; font-size: 11px;'>
+        {self.tr.tr('help_output_content')}
+        </span></p>
+        """
+
+        help_text = QLabel(help_html)
         help_text.setWordWrap(True)
         help_text.setTextFormat(Qt.RichText)
 
@@ -242,12 +246,26 @@ class PreferencesDialog(QDialog):
 
     def accept(self):
         """保存设置并关闭"""
+        # 检查语言是否更改
+        old_language = self.settings.get_language()
+        new_language = "zh_CN" if self.language_combo.currentIndex() == 0 else "en_US"
+
+        language_changed = (old_language != new_language)
+
         # 语言设置
-        language = "zh_CN" if self.language_combo.currentIndex() == 0 else "en_US"
-        self.settings.set("general", "language", language)
+        self.settings.set_language(new_language)
 
         # 保存到文件
         self.settings.save_settings()
+
+        # 如果语言改变，提示重启
+        if language_changed:
+            QMessageBox.information(
+                self,
+                "Language Changed / 语言已更改",
+                "Please restart the application for the language change to take effect.\n"
+                "请重启应用以使语言设置生效。"
+            )
 
         # 关闭对话框
         super().accept()

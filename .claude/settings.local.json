@@ -39,7 +39,19 @@
       "Bash(iconutil -c icns:*)",
       "Bash(rm:*)",
       "Bash(.venv/bin/python:*)",
-      "Bash(PYTHONPATH=/Users/jameszhenyu/PycharmProjects/SuperStarTrail/src .venv/bin/python:*)"
+      "Bash(PYTHONPATH=/Users/jameszhenyu/PycharmProjects/SuperStarTrail/src .venv/bin/python:*)",
+      "Bash(security find-identity:*)",
+      "Bash(export SIGNING_IDENTITY=\"Developer ID Application: James Zhen Yu (JWR6FDB52H)\")",
+      "Bash(export APPLE_ID=\"James@jamesphotography.com.au\":*)",
+      "Bash(export:*)",
+      "Bash(export TEAM_ID=\"JWR6FDB52H\":*)",
+      "Bash(echo:*)",
+      "Bash(SIGNING_IDENTITY=\"Developer ID Application: James Zhen Yu (JWR6FDB52H)\" APPLE_ID=\"James@jamesphotography.com.au\" APP_SPECIFIC_PASSWORD=\"iocf-bcmw-xxgc-kkvp\" TEAM_ID=\"JWR6FDB52H\" ./build_and_sign.sh:*)",
+      "Bash(spctl -a -vv:*)",
+      "Bash(SIGNING_IDENTITY=\"Developer ID Application: James Zhen Yu (JWR6FDB52H)\" APPLE_ID=\"James@jamesphotography.com.au\" APP_SPECIFIC_PASSWORD=\"iocf-bcmw-xxgc-kkvp\" TEAM_ID=\"JWR6FDB52H\" ./build_and_sign.sh)",
+      "Bash(pyinstaller:*)",
+      "Bash(open:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

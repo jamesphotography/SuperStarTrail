@@ -34,6 +34,20 @@ from core.stacking_engine import StackingEngine, StackMode
 from utils.logger import setup_logger
 from utils.settings import get_settings
 from ui.dialogs import AboutDialog, PreferencesDialog
+from i18n import get_translator, set_language
+from ui.styles import (
+    get_complete_stylesheet,
+    PRIMARY_BUTTON_STYLE,
+    SUCCESS_BUTTON_STYLE,
+    DANGER_BUTTON_STYLE,
+    SECONDARY_BUTTON_STYLE,
+    TITLE_LABEL_STYLE,
+    SUBTITLE_LABEL_STYLE,
+    INFO_LABEL_STYLE,
+    PREVIEW_AREA_STYLE,
+    LOG_TEXT_STYLE,
+    COLORS,
+)
 
 logger = setup_logger(__name__)
 
@@ -62,6 +76,7 @@ class ProcessThread(QThread):
         enable_timelapse: bool = False,
         output_dir: Path = None,
         video_fps: int = 30,
+        translator = None,
     ):
         super().__init__()
         self.file_paths = file_paths
@@ -74,6 +89,7 @@ class ProcessThread(QThread):
         self.comet_fade_factor = comet_fade_factor
         self.enable_timelapse = enable_timelapse
         self.output_dir = output_dir
+        self.translator = translator
         self.video_fps = video_fps
         self._is_running = True
 
@@ -90,7 +106,7 @@ class ProcessThread(QThread):
             # 确定输出目录（如果未指定，使用默认的"彗星星轨"子目录）
             from pathlib import Path
             if self.output_dir is None:
-                output_dir = self.file_paths[0].parent / "彗星星轨"
+                output_dir = self.file_paths[0].parent / "StarTrail"
             else:
                 output_dir = self.output_dir
 
@@ -235,7 +251,13 @@ class ProcessThread(QThread):
                 avg_time = elapsed / (i + 1)
                 remaining = avg_time * (total - i - 1)
 
-                status = f"处理中 [{i+1}/{total}] - 预计剩余: {remaining:.0f}秒"
+                # 格式化剩余时间
+                if remaining >= 60:
+                    remaining_str = f"{int(remaining // 60)}分{int(remaining % 60)}秒"
+                else:
+                    remaining_str = f"{int(remaining)}秒"
+
+                status = f"⏳ 处理中 - 预计剩余: {remaining_str}"
                 self.status_message.emit(status)
 
                 # 每处理 3 张图片更新一次预览（不应用填充，加快速度）
@@ -316,13 +338,31 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("彗星星轨 by James Zhen Yu")
+
+        # 初始化翻译器
+        settings = get_settings()
+        language = settings.get_language()
+        set_language(language)
+        self.tr = get_translator()
+
+        self.setWindowTitle(f"{self.tr.tr('app_name')} by James Zhen Yu")
         self.setGeometry(100, 100, 1200, 800)
 
         # 设置窗口图标
         icon_path = Path(__file__).parent.parent / "resources" / "logo.png"
         if icon_path.exists():
-            self.setWindowIcon(QIcon(str(icon_path)))
+            icon = QIcon(str(icon_path))
+            # 添加多个尺寸以确保在不同场景下都显示正确
+            for size in [16, 32, 48, 64, 128, 256, 512]:
+                pixmap = QPixmap(str(icon_path)).scaled(
+                    size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                )
+                icon.addPixmap(pixmap)
+            self.setWindowIcon(icon)
+
+            # 在macOS上，还需要设置应用程序级别的图标
+            if hasattr(QApplication.instance(), 'setWindowIcon'):
+                QApplication.instance().setWindowIcon(icon)
 
         # 数据
         self.raw_files: List[Path] = []
@@ -336,6 +376,9 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """初始化用户界面"""
+        # 应用全局样式表
+        self.setStyleSheet(get_complete_stylesheet())
+
         # 创建菜单栏
         self.create_menu_bar()
 
@@ -343,6 +386,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         main_layout = QHBoxLayout()
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(15, 15, 15, 15)
         central_widget.setLayout(main_layout)
 
         # 左侧面板（文件列表和控制）
@@ -360,61 +405,72 @@ class MainWindow(QMainWindow):
         panel.setLayout(layout)
 
         # 文件选择组
-        file_group = QGroupBox("文件选择")
+        file_group = QGroupBox(self.tr.tr("file_list"))
         file_layout = QVBoxLayout()
 
-        self.btn_select_folder = QPushButton("选择图片目录")
+        self.btn_select_folder = QPushButton(f"📁 {self.tr.tr('select_directory')}")
         self.btn_select_folder.clicked.connect(self.select_folder)
         self.btn_select_folder.setToolTip("选择包含星轨照片的文件夹\n支持格式：RAW (CR2, NEF, ARW等)、TIFF、JPG、PNG")
+        self.btn_select_folder.setStyleSheet(PRIMARY_BUTTON_STYLE)
         file_layout.addWidget(self.btn_select_folder)
 
         # 输出目录选择
         output_dir_layout = QHBoxLayout()
-        self.btn_select_output = QPushButton("选择输出目录")
+        self.btn_select_output = QPushButton(f"💾 {self.tr.tr('select_directory')}")
         self.btn_select_output.clicked.connect(self.select_output_dir)
-        self.btn_select_output.setToolTip("选择保存星轨照片和视频的目录\n默认：原片目录/彗星星轨/")
+        self.btn_select_output.setToolTip(self.tr.tr('tooltip_output_dir') if hasattr(self.tr, 'tr') else "Select output directory")
+        self.btn_select_output.setStyleSheet(SECONDARY_BUTTON_STYLE)
         output_dir_layout.addWidget(self.btn_select_output)
 
-        self.label_output_dir = QLabel("默认：原片目录/彗星星轨/")
+        self.label_output_dir = QLabel(self.tr.tr("no_directory_selected"))
         self.label_output_dir.setWordWrap(True)
-        self.label_output_dir.setStyleSheet("color: #666; font-size: 11px;")
+        self.label_output_dir.setStyleSheet(INFO_LABEL_STYLE)
         output_dir_layout.addWidget(self.label_output_dir, 1)
 
         file_layout.addLayout(output_dir_layout)
 
         self.file_list = QListWidget()
-        self.file_list.itemDoubleClicked.connect(self.preview_single_file)  # 双击预览
+        self.file_list.itemClicked.connect(self.preview_single_file)  # 单击预览
         file_layout.addWidget(self.file_list)
 
-        self.label_file_count = QLabel("已选择 0 个文件")
+        self.label_file_count = QLabel(self.tr.tr("files_selected").format(count=0))
+        self.label_file_count.setStyleSheet(INFO_LABEL_STYLE)
         file_layout.addWidget(self.label_file_count)
 
         file_group.setLayout(file_layout)
         layout.addWidget(file_group)
 
         # 参数设置组
-        params_group = QGroupBox("参数设置")
+        params_group = QGroupBox(self.tr.tr("parameters"))
         params_layout = QVBoxLayout()
 
         # 堆栈模式选择
-        params_layout.addWidget(QLabel("堆栈模式:"))
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel(self.tr.tr("stack_mode")))
         self.combo_stack_mode = QComboBox()
         self.combo_stack_mode.addItems(
             [
-                "Comet (彗星效果)",
-                "Lighten (星轨)",
-                "Average (降噪)",
-                "Darken (去光污染)",
+                self.tr.tr("mode_lighten"),
+                self.tr.tr("mode_comet"),
+                self.tr.tr("mode_average"),
+                self.tr.tr("mode_darken"),
             ]
         )
-        self.combo_stack_mode.setCurrentIndex(0)  # 默认选择彗星效果
+        self.combo_stack_mode.setCurrentIndex(0)  # 默认选择传统星轨
         self.combo_stack_mode.currentIndexChanged.connect(self.on_stack_mode_changed)
-        params_layout.addWidget(self.combo_stack_mode)
+        mode_layout.addWidget(self.combo_stack_mode, 1)
+        params_layout.addLayout(mode_layout)
 
         # 彗星尾巴长度（仅彗星模式显示）
-        self.label_comet_tail = QLabel("彗星尾巴长度:")
+        tail_layout = QHBoxLayout()
+        self.label_comet_tail = QLabel(self.tr.tr("comet_tail"))
+        tail_layout.addWidget(self.label_comet_tail)
         self.combo_comet_tail = QComboBox()
-        self.combo_comet_tail.addItems(["短 (0.95)", "中 (0.97)", "长 (0.99)"])
+        self.combo_comet_tail.addItems([
+            self.tr.tr("tail_short"),
+            self.tr.tr("tail_medium"),
+            self.tr.tr("tail_long")
+        ])
         self.combo_comet_tail.setCurrentIndex(1)  # 默认"中"
         self.combo_comet_tail.setToolTip(
             "控制彗星尾巴的长度\n"
@@ -422,30 +478,41 @@ class MainWindow(QMainWindow):
             "中: 适中效果（推荐）\n"
             "长: 慢慢消失"
         )
-        params_layout.addWidget(self.label_comet_tail)
-        params_layout.addWidget(self.combo_comet_tail)
-        # 默认显示彗星选项（因为默认模式是彗星）
-        self.label_comet_tail.show()
-        self.combo_comet_tail.show()
+        tail_layout.addWidget(self.combo_comet_tail, 1)
+        params_layout.addLayout(tail_layout)
+        # 默认隐藏彗星选项（因为默认模式是传统星轨）
+        self.label_comet_tail.hide()
+        self.combo_comet_tail.hide()
 
         # 白平衡选择
-        params_layout.addWidget(QLabel("白平衡:"))
+        wb_layout = QHBoxLayout()
+        wb_layout.addWidget(QLabel(self.tr.tr("white_balance")))
         self.combo_white_balance = QComboBox()
-        self.combo_white_balance.addItems(["相机白平衡", "日光", "自动"])
-        params_layout.addWidget(self.combo_white_balance)
+        self.combo_white_balance.addItems([
+            self.tr.tr("wb_camera"),
+            self.tr.tr("wb_daylight"),
+            self.tr.tr("wb_auto")
+        ])
+        wb_layout.addWidget(self.combo_white_balance, 1)
+        params_layout.addLayout(wb_layout)
 
-        # 间隔填充选项（最简化）
-        self.check_enable_gap_filling = QCheckBox("启用间隔填充")
+        # 间隔填充和延时视频选项（同一行）
+        options_layout = QHBoxLayout()
+        self.check_enable_gap_filling = QCheckBox(self.tr.tr("gap_filling_checked"))
         self.check_enable_gap_filling.setToolTip(
             "填补星点之间的间隔，使星轨更加连续流畅\n"
             "使用形态学算法，3像素间隔（适合大部分场景）\n"
             "性能影响：几乎无（仅在最后应用一次）"
         )
         self.check_enable_gap_filling.setChecked(True)  # 默认启用
-        params_layout.addWidget(self.check_enable_gap_filling)
+        self.check_enable_gap_filling.stateChanged.connect(
+            lambda state: self.check_enable_gap_filling.setText(
+                self.tr.tr("gap_filling_checked") if state else self.tr.tr("gap_filling")
+            )
+        )
+        options_layout.addWidget(self.check_enable_gap_filling)
 
-        # 延时视频选项
-        self.check_enable_timelapse = QCheckBox("生成延时视频 (4K)")
+        self.check_enable_timelapse = QCheckBox(self.tr.tr("timelapse_video"))
         self.check_enable_timelapse.setToolTip(
             "将星轨形成过程制作为延时视频\n"
             "展示从第一张到最后一张的星轨变长过程\n"
@@ -455,38 +522,53 @@ class MainWindow(QMainWindow):
             "额外处理时间：约 1-2 分钟"
         )
         self.check_enable_timelapse.setChecked(False)  # 默认关闭
-        params_layout.addWidget(self.check_enable_timelapse)
+        self.check_enable_timelapse.stateChanged.connect(
+            lambda state: self.check_enable_timelapse.setText(
+                self.tr.tr("timelapse_checked") if state else self.tr.tr("timelapse_video")
+            )
+        )
+        options_layout.addWidget(self.check_enable_timelapse)
+        options_layout.addStretch()
+        params_layout.addLayout(options_layout)
 
         params_group.setLayout(params_layout)
         layout.addWidget(params_group)
 
-        # 处理控制
-        self.btn_start = QPushButton("开始合成")
+        # 处理控制（同一行）
+        control_layout = QHBoxLayout()
+
+        self.btn_start = QPushButton(self.tr.tr("start"))
         self.btn_start.clicked.connect(self.start_processing)
         self.btn_start.setEnabled(False)
-        layout.addWidget(self.btn_start)
+        # 缩小按钮尺寸
+        self.btn_start.setStyleSheet(SUCCESS_BUTTON_STYLE + "padding: 8px 16px; font-size: 13px;")
+        control_layout.addWidget(self.btn_start)
 
-        self.btn_stop = QPushButton("停止")
+        self.btn_stop = QPushButton(self.tr.tr("stop"))
         self.btn_stop.clicked.connect(self.stop_processing)
         self.btn_stop.setEnabled(False)
-        layout.addWidget(self.btn_stop)
+        self.btn_stop.setStyleSheet(DANGER_BUTTON_STYLE + "padding: 8px 16px; font-size: 13px;")
+        control_layout.addWidget(self.btn_stop)
 
         # 状态标签
-        self.label_status = QLabel("就绪")
+        self.label_status = QLabel(self.tr.tr("ready"))
         self.label_status.setAlignment(Qt.AlignCenter)
-        self.label_status.setStyleSheet("padding: 5px; background: #e8f4f8; border-radius: 3px;")
-        layout.addWidget(self.label_status)
+        self.label_status.setStyleSheet(f"""
+            padding: 8px 12px;
+            background-color: {COLORS['bg_light']};
+            border-radius: 5px;
+            color: {COLORS['text_primary']};
+            font-size: 11px;
+            font-weight: bold;
+        """)
+        control_layout.addWidget(self.label_status, 1)
+
+        layout.addLayout(control_layout)
 
         # 进度条
         self.progress_bar = QProgressBar()
         self.progress_bar.setFormat("%p% (%v/%m)")  # 显示百分比和进度
         layout.addWidget(self.progress_bar)
-
-        # 打开输出目录
-        self.btn_open_output = QPushButton("打开输出目录")
-        self.btn_open_output.clicked.connect(self.open_output_dir)
-        self.btn_open_output.setEnabled(False)
-        layout.addWidget(self.btn_open_output)
 
         layout.addStretch()
         return panel
@@ -495,53 +577,71 @@ class MainWindow(QMainWindow):
         """创建右侧预览面板"""
         panel = QWidget()
         layout = QVBoxLayout()
+        layout.setSpacing(10)
         panel.setLayout(layout)
 
-        title = QLabel("预览")
-        title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
+        # 标题栏（带 Logo）
+        title_layout = QHBoxLayout()
+        title_layout.addStretch()
 
-        self.preview_label = QLabel("请选择文件并开始处理")
+        # Logo 图标
+        logo_path = Path(__file__).parent.parent / "resources" / "logo.png"
+        if logo_path.exists():
+            logo_label = QLabel()
+            logo_pixmap = QPixmap(str(logo_path)).scaled(
+                32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            logo_label.setPixmap(logo_pixmap)
+            title_layout.addWidget(logo_label)
+
+        # 标题文字
+        title = QLabel(self.tr.tr("preview"))
+        title.setStyleSheet(TITLE_LABEL_STYLE)
+        title_layout.addWidget(title)
+        title_layout.addStretch()
+
+        layout.addLayout(title_layout)
+
+        # 预览区域
+        self.preview_label = QLabel(self.tr.tr("drop_files_here"))
         self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setStyleSheet(
-            "border: 1px solid #555; "
-            "background: #2b2b2b; "
-            "color: #e0e0e0; "
-            "font-size: 14px; "
-            "padding: 20px;"
-        )
+        self.preview_label.setStyleSheet(PREVIEW_AREA_STYLE)
         self.preview_label.setMinimumSize(800, 400)
         layout.addWidget(self.preview_label)
 
-        # 播放延时视频按钮
-        self.btn_play_video = QPushButton("▶ 播放延时视频")
+        # 操作按钮（同一行）
+        action_buttons_layout = QHBoxLayout()
+
+        self.btn_play_video = QPushButton(self.tr.tr("play_video"))
         self.btn_play_video.clicked.connect(self.play_timelapse_video)
         self.btn_play_video.setEnabled(False)
-        self.btn_play_video.setStyleSheet("font-size: 14px; padding: 10px;")
-        layout.addWidget(self.btn_play_video)
+        self.btn_play_video.setStyleSheet(PRIMARY_BUTTON_STYLE + "padding: 8px 16px; font-size: 12px;")
+        action_buttons_layout.addWidget(self.btn_play_video)
+
+        self.btn_open_output = QPushButton(self.tr.tr("open_output_dir"))
+        self.btn_open_output.clicked.connect(self.open_output_dir)
+        self.btn_open_output.setEnabled(False)
+        self.btn_open_output.setStyleSheet(SECONDARY_BUTTON_STYLE + "padding: 8px 16px; font-size: 12px;")
+        action_buttons_layout.addWidget(self.btn_open_output)
+
+        layout.addLayout(action_buttons_layout)
 
         # 添加日志输出区域
-        log_label = QLabel("处理日志")
-        log_label.setStyleSheet("font-weight: bold; padding: 5px;")
+        log_label = QLabel(f"📋 {self.tr.tr('processing_log')}")
+        log_label.setStyleSheet(SUBTITLE_LABEL_STYLE)
         layout.addWidget(log_label)
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setMaximumHeight(200)
-        self.log_text.setStyleSheet(
-            "background: #1e1e1e; "
-            "color: #d4d4d4; "
-            "font-family: 'Monaco', 'Menlo', 'Consolas', monospace; "
-            "font-size: 11px; "
-            "border: 1px solid #555;"
-        )
+        self.log_text.setStyleSheet(LOG_TEXT_STYLE)
         layout.addWidget(self.log_text)
 
         return panel
 
     def select_folder(self):
         """选择包含图片文件的文件夹"""
-        folder = QFileDialog.getExistingDirectory(self, "选择图片目录")
+        folder = QFileDialog.getExistingDirectory(self, self.tr.tr("select_directory"))
         if not folder:
             return
 
@@ -562,24 +662,24 @@ class MainWindow(QMainWindow):
         for file in self.raw_files:
             self.file_list.addItem(file.name)
 
-        self.label_file_count.setText(f"已选择 {len(self.raw_files)} 个文件")
+        self.label_file_count.setText(self.tr.tr("files_selected").format(count=len(self.raw_files)))
         self.btn_start.setEnabled(len(self.raw_files) > 0)
 
-        # 设置默认输出目录：原片目录/彗星星轨/
+        # 设置默认输出目录：原片目录/StarTrail/
         if len(self.raw_files) > 0:
-            self.output_dir = folder_path / "彗星星轨"
-            self.label_output_dir.setText(f"输出：{self.output_dir}")
+            self.output_dir = folder_path / "StarTrail"
+            self.label_output_dir.setText(self.tr.tr("output_to").format(path=self.output_dir))
 
         # 自动预览第一张图片
         if len(self.raw_files) > 0:
-            self.label_status.setText(f"正在加载预览: {self.raw_files[0].name}...")
+            self.label_status.setText(self.tr.tr("loading_preview").format(filename=self.raw_files[0].name))
             try:
                 raw_params = self.get_raw_params()
                 image = processor.process(self.raw_files[0], **raw_params)
                 self.update_preview(image)
-                self.label_status.setText(f"预览: {self.raw_files[0].name}")
+                self.label_status.setText(self.tr.tr("preview_file").format(filename=self.raw_files[0].name))
             except Exception as e:
-                self.label_status.setText(f"预览失败: {str(e)}")
+                self.label_status.setText(self.tr.tr("preview_failed").format(error=str(e)))
                 logger.error(f"自动预览第一张失败: {e}")
 
     def select_output_dir(self):
@@ -587,15 +687,15 @@ class MainWindow(QMainWindow):
         # 默认目录：如果已设置则使用当前输出目录，否则使用桌面
         default_dir = str(self.output_dir) if self.output_dir else str(Path.home() / "Desktop")
 
-        folder = QFileDialog.getExistingDirectory(self, "选择输出目录", default_dir)
+        folder = QFileDialog.getExistingDirectory(self, self.tr.tr("select_directory"), default_dir)
         if folder:
             self.output_dir = Path(folder)
-            self.label_output_dir.setText(f"输出：{self.output_dir}")
+            self.label_output_dir.setText(self.tr.tr("output_to").format(path=self.output_dir))
 
     def on_stack_mode_changed(self, index):
         """堆栈模式改变时的回调"""
-        # 只在彗星模式(index=0)时显示尾巴长度选项
-        is_comet_mode = (index == 0)
+        # 只在彗星模式(index=1)时显示尾巴长度选项
+        is_comet_mode = (index == 1)
         self.label_comet_tail.setVisible(is_comet_mode)
         self.combo_comet_tail.setVisible(is_comet_mode)
 
@@ -607,7 +707,7 @@ class MainWindow(QMainWindow):
             file_path = self.raw_files[index]
 
             # 在状态栏显示正在加载
-            self.label_status.setText(f"正在加载预览: {file_path.name}...")
+            self.label_status.setText(self.tr.tr("loading_preview").format(filename=file_path.name))
 
             try:
                 # 读取RAW文件（注意：process 方法需要 Path 对象，不是字符串）
@@ -617,17 +717,17 @@ class MainWindow(QMainWindow):
 
                 # 更新预览
                 self.update_preview(image)
-                self.label_status.setText(f"预览: {file_path.name}")
+                self.label_status.setText(self.tr.tr("preview_file").format(filename=file_path.name))
 
             except Exception as e:
-                self.label_status.setText(f"预览失败: {str(e)}")
+                self.label_status.setText(self.tr.tr("preview_failed").format(error=str(e)))
                 logger.error(f"预览文件失败: {e}")
 
     def get_stack_mode(self) -> StackMode:
         """获取选择的堆栈模式"""
         mode_map = {
-            0: StackMode.COMET,
-            1: StackMode.LIGHTEN,
+            0: StackMode.LIGHTEN,
+            1: StackMode.COMET,
             2: StackMode.AVERAGE,
             3: StackMode.DARKEN,
         }
@@ -654,7 +754,7 @@ class MainWindow(QMainWindow):
         # 重置进度条
         self.progress_bar.setValue(0)
         self.progress_bar.setMaximum(len(self.raw_files))
-        self.label_status.setText("准备开始...")
+        self.label_status.setText(self.tr.tr("preparing"))
 
         # 使用固定的最佳参数
         gap_fill_method = "morphological"  # 形态学算法，经过测试最佳
@@ -662,9 +762,9 @@ class MainWindow(QMainWindow):
 
         # 获取彗星模式参数
         comet_fade_map = {
-            0: 0.95,  # 短
+            0: 0.96,  # 短
             1: 0.97,  # 中
-            2: 0.99,  # 长
+            2: 0.98,  # 长
         }
         comet_fade_factor = comet_fade_map[self.combo_comet_tail.currentIndex()]
 
@@ -685,6 +785,7 @@ class MainWindow(QMainWindow):
             enable_timelapse=self.check_enable_timelapse.isChecked(),
             output_dir=self.output_dir,
             video_fps=video_fps,
+            translator=self.tr,
         )
         self.process_thread.progress.connect(self.update_progress)
         self.process_thread.preview_update.connect(self.update_preview)
@@ -771,7 +872,7 @@ class MainWindow(QMainWindow):
         if self.output_dir:
             output_dir = self.output_dir
         else:
-            output_dir = self.raw_files[0].parent / "彗星星轨"
+            output_dir = self.raw_files[0].parent / "StarTrail"
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -802,8 +903,16 @@ class MainWindow(QMainWindow):
         self.btn_open_output.setEnabled(True)
 
         if success:
-            self.label_status.setText(f"✅ 合成完成！已保存到: {output_dir}")
+            # 状态栏只显示简短信息
+            self.label_status.setText("✅ 合成完成")
             self.label_status.setStyleSheet("padding: 5px; background: #d4edda; border-radius: 3px; color: #155724;")
+
+            # 详细路径信息记录到日志
+            logger.info(f"合成完成！文件已保存到: {output_dir}")
+
+            # 播放完成音效
+            self.play_completion_sound()
+
             QMessageBox.information(self, "完成", f"星轨合成完成！\n\n文件已保存至:\n{output_dir}")
         else:
             self.label_status.setText("❌ 合成完成但保存失败")
@@ -856,6 +965,34 @@ class MainWindow(QMainWindow):
                 subprocess.run(["xdg-open", str(self.timelapse_video_path)])
         else:
             QMessageBox.warning(self, "提示", "延时视频文件不存在")
+
+    def play_completion_sound(self):
+        """播放完成音效"""
+        try:
+            import subprocess
+            import platform
+
+            # ending.mp3 在项目根目录
+            sound_path = Path(__file__).parent.parent.parent / "ending.mp3"
+
+            if sound_path.exists():
+                if platform.system() == "Darwin":  # macOS
+                    # 使用 afplay 命令播放音频（macOS 内置）
+                    subprocess.Popen(["afplay", str(sound_path)])
+                elif platform.system() == "Windows":
+                    # Windows 使用 winsound
+                    import winsound
+                    winsound.PlaySound(str(sound_path), winsound.SND_FILENAME | winsound.SND_ASYNC)
+                else:  # Linux
+                    # Linux 使用 aplay 或 paplay
+                    try:
+                        subprocess.Popen(["paplay", str(sound_path)])
+                    except:
+                        subprocess.Popen(["aplay", str(sound_path)])
+            else:
+                logger.warning(f"完成音效文件不存在: {sound_path}")
+        except Exception as e:
+            logger.error(f"播放完成音效失败: {e}")
 
     def generate_output_filename(self) -> str:
         """生成智能输出文件名"""
@@ -920,47 +1057,47 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
 
         # 文件菜单
-        file_menu = menubar.addMenu("文件(&F)")
+        file_menu = menubar.addMenu(self.tr.tr("menu_file"))
 
         # 打开文件夹
-        open_folder_action = QAction("打开图片目录...(&O)", self)
+        open_folder_action = QAction(self.tr.tr("menu_open_folder"), self)
         open_folder_action.setShortcut("Ctrl+O")
         open_folder_action.triggered.connect(self.select_folder)
         file_menu.addAction(open_folder_action)
 
         # 选择输出目录
-        output_dir_action = QAction("选择输出目录...(&D)", self)
+        output_dir_action = QAction(self.tr.tr("menu_select_output"), self)
         output_dir_action.triggered.connect(self.select_output_dir)
         file_menu.addAction(output_dir_action)
 
         file_menu.addSeparator()
 
         # 退出
-        exit_action = QAction("退出(&Q)", self)
+        exit_action = QAction(self.tr.tr("menu_exit"), self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
         # 编辑菜单
-        edit_menu = menubar.addMenu("编辑(&E)")
+        edit_menu = menubar.addMenu(self.tr.tr("menu_edit"))
 
         # 偏好设置
-        preferences_action = QAction("偏好设置...(&P)", self)
+        preferences_action = QAction(self.tr.tr("menu_preferences"), self)
         preferences_action.setShortcut("Ctrl+,")
         preferences_action.triggered.connect(self.show_preferences)
         edit_menu.addAction(preferences_action)
 
         # 处理菜单
-        process_menu = menubar.addMenu("处理(&P)")
+        process_menu = menubar.addMenu(self.tr.tr("menu_process"))
 
         # 开始处理
-        start_action = QAction("开始处理(&S)", self)
+        start_action = QAction(self.tr.tr("menu_start"), self)
         start_action.setShortcut("Ctrl+R")
         start_action.triggered.connect(self.start_processing)
         process_menu.addAction(start_action)
 
         # 停止处理
-        stop_action = QAction("停止处理(&T)", self)
+        stop_action = QAction(self.tr.tr("menu_stop"), self)
         stop_action.setShortcut("Ctrl+.")
         stop_action.triggered.connect(self.stop_processing)
         process_menu.addAction(stop_action)
@@ -968,37 +1105,37 @@ class MainWindow(QMainWindow):
         process_menu.addSeparator()
 
         # 保存结果
-        save_action = QAction("保存结果...(&V)", self)
+        save_action = QAction(self.tr.tr("menu_save"), self)
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.save_result)
         process_menu.addAction(save_action)
 
         # 窗口菜单
-        window_menu = menubar.addMenu("窗口(&W)")
+        window_menu = menubar.addMenu(self.tr.tr("menu_window"))
 
         # 最小化
-        minimize_action = QAction("最小化(&M)", self)
+        minimize_action = QAction(self.tr.tr("menu_minimize"), self)
         minimize_action.setShortcut("Ctrl+M")
         minimize_action.triggered.connect(self.showMinimized)
         window_menu.addAction(minimize_action)
 
         # 缩放
-        zoom_action = QAction("缩放(&Z)", self)
+        zoom_action = QAction(self.tr.tr("menu_zoom"), self)
         zoom_action.triggered.connect(self.toggle_maximized)
         window_menu.addAction(zoom_action)
 
         # 帮助菜单
-        help_menu = menubar.addMenu("帮助(&H)")
+        help_menu = menubar.addMenu(self.tr.tr("menu_help"))
 
         # 使用指南
-        guide_action = QAction("使用指南(&G)", self)
+        guide_action = QAction(self.tr.tr("menu_guide"), self)
         guide_action.triggered.connect(self.show_guide)
         help_menu.addAction(guide_action)
 
         help_menu.addSeparator()
 
         # 关于
-        about_action = QAction("关于 彗星星轨(&A)", self)
+        about_action = QAction(self.tr.tr("menu_about"), self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 

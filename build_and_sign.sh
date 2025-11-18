@@ -83,7 +83,7 @@ if [ -n "$SIGNING_IDENTITY" ]; then
 
     # 验证签名
     codesign --verify --deep --strict --verbose=2 "dist/${APP_NAME}.app"
-    spctl -a -vv "dist/${APP_NAME}.app"
+    spctl -a -vv "dist/${APP_NAME}.app" || echo "注：未公证的应用会显示 rejected，这是正常的"
 
     echo -e "${GREEN}✓ 应用签名完成${NC}"
 else

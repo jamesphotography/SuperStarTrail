@@ -131,6 +131,15 @@ class Settings:
         """获取白平衡"""
         return self.get("raw", "white_balance", "auto")
 
+    def get_language(self) -> str:
+        """获取语言设置"""
+        return self.get("general", "language", "zh_CN")
+
+    def set_language(self, language: str):
+        """设置语言"""
+        self.set("general", "language", language)
+        self.save_settings()
+
 
 # 全局设置实例
 _settings_instance = None
