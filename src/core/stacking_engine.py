@@ -9,6 +9,9 @@ from typing import List, Optional, Callable
 from pathlib import Path
 import numpy as np
 from numba import jit
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class StackMode(Enum):
