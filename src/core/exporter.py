@@ -1,8 +1,4 @@
 """
-from utils.logger import setup_logger
-
-logger = setup_logger(__name__)
-
 图像导出模块
 
 负责将处理后的图像保存为各种格式
@@ -13,6 +9,9 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 import tifffile
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class ImageExporter:
@@ -96,7 +95,7 @@ class ImageExporter:
             except Exception as e:
                 if "imagecodecs" in str(e):
                     # 降级到无压缩
-                    print(f"警告: {compression} 压缩需要 imagecodecs 包，使用无压缩模式")
+                    logger.warning(f"{compression} 压缩需要 imagecodecs 包，使用无压缩模式")
                     tifffile.imwrite(
                         str(output_path),
                         img_to_save,
