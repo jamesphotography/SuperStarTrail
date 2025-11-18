@@ -46,9 +46,17 @@ TRANSLATIONS = {
 
         # 文件计数和目录
         "files_selected": "已选择 {count} 个文件",
+        "files_selected_with_excluded": "已选择 {count} 个文件 ({active} 参与合成, {excluded} 已排除)",
         "output_to": "输出：{path}",
         "default_output": "默认：原片目录/StarTrail/",
         "tooltip_output_dir": "选择保存星轨照片和视频的目录\n默认：原片目录/StarTrail/",
+
+        # 文件排除功能
+        "exclude_from_stacking": "❌ 排除出星轨合成",
+        "include_in_stacking": "✅ 恢复到星轨合成",
+        "excluded_file_tooltip": "此文件已被排除，不会参与星轨合成",
+        "all_files_excluded": "所有文件都已被排除，无法进行处理",
+        "warning": "警告",
 
         # 菜单
         "menu_file": "文件(&F)",
@@ -269,9 +277,17 @@ TRANSLATIONS = {
 
         # File count and directories
         "files_selected": "{count} files selected",
+        "files_selected_with_excluded": "{count} files selected ({active} active, {excluded} excluded)",
         "output_to": "Output: {path}",
         "default_output": "Default: Source dir/StarTrail/",
         "tooltip_output_dir": "Select directory to save star trail photos and videos\nDefault: Source dir/StarTrail/",
+
+        # File exclusion feature
+        "exclude_from_stacking": "❌ Exclude from Stacking",
+        "include_in_stacking": "✅ Include in Stacking",
+        "excluded_file_tooltip": "This file is excluded and will not be used in stacking",
+        "all_files_excluded": "All files are excluded, cannot proceed with processing",
+        "warning": "Warning",
 
         # Menus
         "menu_file": "&File",

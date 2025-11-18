@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QFileDialog,
     QListWidget,
+    QListWidgetItem,
     QComboBox,
     QProgressBar,
     QMessageBox,
@@ -356,6 +357,7 @@ class MainWindow(QMainWindow):
 
         # 数据
         self.raw_files: List[Path] = []
+        self.excluded_files: set = set()  # 被排除的文件索引集合
         self.result_image: np.ndarray = None
         self.process_thread: ProcessThread = None
         self.output_dir: Path = None  # 输出目录
@@ -424,7 +426,10 @@ class MainWindow(QMainWindow):
         file_layout.addLayout(output_dir_layout)
 
         self.file_list = QListWidget()
+        self.file_list.setSelectionMode(QListWidget.ExtendedSelection)  # 允许多选
         self.file_list.itemClicked.connect(self.preview_single_file)  # 单击预览
+        self.file_list.setContextMenuPolicy(Qt.CustomContextMenu)  # 启用自定义右键菜单
+        self.file_list.customContextMenuRequested.connect(self.show_file_list_context_menu)
         file_layout.addWidget(self.file_list)
 
         self.label_file_count = QLabel(self.tr.tr("files_selected").format(count=0))
@@ -651,12 +656,13 @@ class MainWindow(QMainWindow):
         # 按文件名排序（重要！确保堆栈顺序正确）
         self.raw_files.sort(key=lambda x: x.name)
 
-        # 更新 UI
-        self.file_list.clear()
-        for file in self.raw_files:
-            self.file_list.addItem(file.name)
+        # 重置排除列表
+        self.excluded_files.clear()
 
-        self.label_file_count.setText(self.tr.tr("files_selected").format(count=len(self.raw_files)))
+        # 更新 UI
+        self.refresh_file_list()
+
+        self.update_file_count_label()
         self.btn_start.setEnabled(len(self.raw_files) > 0)
 
         # 设置默认输出目录：原片目录/StarTrail/
@@ -740,14 +746,28 @@ class MainWindow(QMainWindow):
         if not self.raw_files:
             return
 
+        # 过滤掉被排除的文件
+        files_to_process = [
+            file for i, file in enumerate(self.raw_files)
+            if i not in self.excluded_files
+        ]
+
+        if not files_to_process:
+            QMessageBox.warning(
+                self,
+                self.tr.tr("warning") if hasattr(self.tr, 'tr') else "警告",
+                self.tr.tr("all_files_excluded") if hasattr(self.tr, 'tr') else "所有文件都已被排除，无法进行处理"
+            )
+            return
+
         # 禁用开始按钮，启用停止按钮
         self.btn_start.setEnabled(False)
         self.btn_stop.setEnabled(True)
         self.btn_open_output.setEnabled(False)
 
-        # 重置进度条
+        # 重置进度条（使用实际处理的文件数）
         self.progress_bar.setValue(0)
-        self.progress_bar.setMaximum(len(self.raw_files))
+        self.progress_bar.setMaximum(len(files_to_process))
         self.label_status.setText(self.tr.tr("preparing"))
 
         # 重置预览缓存（新处理开始）
@@ -771,9 +791,9 @@ class MainWindow(QMainWindow):
         settings = get_settings()
         video_fps = settings.get_video_fps()
 
-        # 创建并启动处理线程
+        # 创建并启动处理线程（使用过滤后的文件列表）
         self.process_thread = ProcessThread(
-            self.raw_files,
+            files_to_process,
             self.get_stack_mode(),
             self.get_raw_params(),
             enable_alignment=False,  # 星轨摄影不需要对齐
@@ -1256,3 +1276,111 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "错误", f"保存文件时出错:\n{str(e)}")
             logger.error(f"保存文件异常: {e}", exc_info=True)
+
+    def refresh_file_list(self):
+        """刷新文件列表显示（带排除状态）"""
+        self.file_list.clear()
+        for i, file in enumerate(self.raw_files):
+            item = QListWidgetItem(file.name)
+
+            # 如果被排除，显示为灰色并添加标记
+            if i in self.excluded_files:
+                item.setForeground(Qt.gray)
+                item.setText(f"❌ {file.name}")
+                item.setToolTip(self.tr.tr("excluded_file_tooltip") if hasattr(self.tr, 'tr') else "此文件已被排除，不会参与星轨合成")
+            else:
+                item.setToolTip(file.name)
+
+            self.file_list.addItem(item)
+
+    def update_file_count_label(self):
+        """更新文件计数标签"""
+        total = len(self.raw_files)
+        excluded = len(self.excluded_files)
+        active = total - excluded
+
+        if excluded > 0:
+            text = self.tr.tr("files_selected_with_excluded").format(
+                count=total,
+                active=active,
+                excluded=excluded
+            ) if hasattr(self.tr, 'tr') else f"已选择 {total} 个文件 ({active} 参与合成, {excluded} 已排除)"
+        else:
+            text = self.tr.tr("files_selected").format(count=total)
+
+        self.label_file_count.setText(text)
+
+    def show_file_list_context_menu(self, position):
+        """显示文件列表右键菜单"""
+        selected_items = self.file_list.selectedItems()
+        if not selected_items:
+            return
+
+        # 获取选中的文件索引
+        selected_indices = []
+        for item in selected_items:
+            index = self.file_list.row(item)
+            selected_indices.append(index)
+
+        # 检查选中的文件是否都被排除
+        all_excluded = all(i in self.excluded_files for i in selected_indices)
+        all_included = all(i not in self.excluded_files for i in selected_indices)
+
+        # 创建右键菜单
+        menu = QMenu(self)
+
+        if all_included:
+            # 全部都是包含的，显示"排除"选项
+            exclude_action = QAction(
+                self.tr.tr("exclude_from_stacking") if hasattr(self.tr, 'tr') else "❌ 排除出星轨合成",
+                self
+            )
+            exclude_action.triggered.connect(lambda: self.toggle_file_exclusion(selected_indices, exclude=True))
+            menu.addAction(exclude_action)
+        elif all_excluded:
+            # 全部都是排除的，显示"恢复"选项
+            include_action = QAction(
+                self.tr.tr("include_in_stacking") if hasattr(self.tr, 'tr') else "✅ 恢复到星轨合成",
+                self
+            )
+            include_action.triggered.connect(lambda: self.toggle_file_exclusion(selected_indices, exclude=False))
+            menu.addAction(include_action)
+        else:
+            # 混合状态，显示两个选项
+            exclude_action = QAction(
+                self.tr.tr("exclude_from_stacking") if hasattr(self.tr, 'tr') else "❌ 排除出星轨合成",
+                self
+            )
+            exclude_action.triggered.connect(lambda: self.toggle_file_exclusion(selected_indices, exclude=True))
+            menu.addAction(exclude_action)
+
+            include_action = QAction(
+                self.tr.tr("include_in_stacking") if hasattr(self.tr, 'tr') else "✅ 恢复到星轨合成",
+                self
+            )
+            include_action.triggered.connect(lambda: self.toggle_file_exclusion(selected_indices, exclude=False))
+            menu.addAction(include_action)
+
+        menu.exec_(self.file_list.viewport().mapToGlobal(position))
+
+    def toggle_file_exclusion(self, indices: List[int], exclude: bool):
+        """切换文件的排除状态
+
+        Args:
+            indices: 文件索引列表
+            exclude: True=排除，False=包含
+        """
+        for index in indices:
+            if exclude:
+                self.excluded_files.add(index)
+            else:
+                self.excluded_files.discard(index)
+
+        # 刷新显示
+        self.refresh_file_list()
+        self.update_file_count_label()
+
+        # 记录日志
+        action = "排除" if exclude else "恢复"
+        file_names = [self.raw_files[i].name for i in indices]
+        logger.info(f"{action}文件: {', '.join(file_names)}")
