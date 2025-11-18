@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 
 # 添加 src 目录到路径
 sys.path.insert(0, str(Path(__file__).parent))
@@ -28,6 +29,11 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("SuperStarTrail")
     app.setOrganizationName("SuperStarTrail")
+
+    # 设置应用程序图标
+    icon_path = Path(__file__).parent / "resources" / "logo.png"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
     # 创建主窗口
     window = MainWindow()

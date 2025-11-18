@@ -64,6 +64,7 @@ class StackingEngine:
         gap_size: int = 3,
         enable_timelapse: bool = False,
         timelapse_output_path: Optional[Path] = None,
+        video_fps: int = 30,
     ):
         """
         初始化堆栈引擎
@@ -96,7 +97,7 @@ class StackingEngine:
             from .timelapse_generator import TimelapseGenerator
             self.timelapse_generator = TimelapseGenerator(
                 output_path=timelapse_output_path,
-                fps=25,
+                fps=video_fps,
                 resolution=(3840, 2160)
             )
 

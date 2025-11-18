@@ -22,14 +22,18 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QApplication,
     QTextEdit,
+    QAction,
+    QMenu,
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QIcon
 import numpy as np
 
 from core.raw_processor import RawProcessor
 from core.stacking_engine import StackingEngine, StackMode
 from utils.logger import setup_logger
+from utils.settings import get_settings
+from ui.dialogs import AboutDialog, PreferencesDialog
 
 logger = setup_logger(__name__)
 
@@ -57,6 +61,7 @@ class ProcessThread(QThread):
         comet_fade_factor: float = 0.98,
         enable_timelapse: bool = False,
         output_dir: Path = None,
+        video_fps: int = 30,
     ):
         super().__init__()
         self.file_paths = file_paths
@@ -69,6 +74,7 @@ class ProcessThread(QThread):
         self.comet_fade_factor = comet_fade_factor
         self.enable_timelapse = enable_timelapse
         self.output_dir = output_dir
+        self.video_fps = video_fps
         self._is_running = True
 
     def run(self):
@@ -152,6 +158,7 @@ class ProcessThread(QThread):
                 gap_size=self.gap_size,
                 enable_timelapse=self.enable_timelapse,
                 timelapse_output_path=timelapse_output_path,
+                video_fps=self.video_fps,
             )
 
             # 如果是彗星模式，设置衰减因子
@@ -172,7 +179,7 @@ class ProcessThread(QThread):
             self.log_message.emit(f"间隔填充: {'启用' if self.enable_gap_filling else '禁用'}")
             if self.enable_gap_filling:
                 self.log_message.emit(f"填充方法: {self.gap_fill_method}, 间隔大小: {self.gap_size}")
-            self.log_message.emit(f"延时视频: {'启用 (4K 25FPS)' if self.enable_timelapse else '禁用'}")
+            self.log_message.emit(f"延时视频: {'启用 (4K ' + str(self.video_fps) + 'FPS)' if self.enable_timelapse else '禁用'}")
             self.log_message.emit("=" * 60)
 
             logger.info(f"=" * 60)
@@ -184,7 +191,7 @@ class ProcessThread(QThread):
             logger.info(f"间隔填充: {'启用' if self.enable_gap_filling else '禁用'}")
             if self.enable_gap_filling:
                 logger.info(f"填充方法: {self.gap_fill_method}, 间隔大小: {self.gap_size}")
-            logger.info(f"延时视频: {'启用 (4K 25FPS)' if self.enable_timelapse else '禁用'}")
+            logger.info(f"延时视频: {'启用 (4K ' + str(self.video_fps) + 'FPS)' if self.enable_timelapse else '禁用'}")
             logger.info(f"=" * 60)
 
             self.status_message.emit(f"开始处理 {total} 张图片...")
@@ -312,6 +319,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("彗星星轨 by James Zhen Yu")
         self.setGeometry(100, 100, 1200, 800)
 
+        # 设置窗口图标
+        icon_path = Path(__file__).parent.parent / "resources" / "logo.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
+
         # 数据
         self.raw_files: List[Path] = []
         self.result_image: np.ndarray = None
@@ -324,6 +336,9 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """初始化用户界面"""
+        # 创建菜单栏
+        self.create_menu_bar()
+
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
@@ -348,8 +363,9 @@ class MainWindow(QMainWindow):
         file_group = QGroupBox("文件选择")
         file_layout = QVBoxLayout()
 
-        self.btn_select_folder = QPushButton("选择RAW文件目录")
+        self.btn_select_folder = QPushButton("选择图片目录")
         self.btn_select_folder.clicked.connect(self.select_folder)
+        self.btn_select_folder.setToolTip("选择包含星轨照片的文件夹\n支持格式：RAW (CR2, NEF, ARW等)、TIFF、JPG、PNG")
         file_layout.addWidget(self.btn_select_folder)
 
         # 输出目录选择
@@ -429,11 +445,12 @@ class MainWindow(QMainWindow):
         params_layout.addWidget(self.check_enable_gap_filling)
 
         # 延时视频选项
-        self.check_enable_timelapse = QCheckBox("生成延时视频 (4K 25FPS)")
+        self.check_enable_timelapse = QCheckBox("生成延时视频 (4K)")
         self.check_enable_timelapse.setToolTip(
             "将星轨形成过程制作为延时视频\n"
             "展示从第一张到最后一张的星轨变长过程\n"
-            "分辨率: 3840×2160 (4K), 帧率: 25 FPS\n"
+            "分辨率: 3840×2160 (4K)\n"
+            "帧率: 25 FPS（默认值）\n"
             "100张图片 ≈ 4秒视频\n"
             "额外处理时间：约 1-2 分钟"
         )
@@ -523,8 +540,8 @@ class MainWindow(QMainWindow):
         return panel
 
     def select_folder(self):
-        """选择包含 RAW 文件的文件夹"""
-        folder = QFileDialog.getExistingDirectory(self, "选择 RAW 文件目录")
+        """选择包含图片文件的文件夹"""
+        folder = QFileDialog.getExistingDirectory(self, "选择图片目录")
         if not folder:
             return
 
@@ -651,6 +668,10 @@ class MainWindow(QMainWindow):
         }
         comet_fade_factor = comet_fade_map[self.combo_comet_tail.currentIndex()]
 
+        # 从设置获取视频 FPS
+        settings = get_settings()
+        video_fps = settings.get_video_fps()
+
         # 创建并启动处理线程
         self.process_thread = ProcessThread(
             self.raw_files,
@@ -663,6 +684,7 @@ class MainWindow(QMainWindow):
             comet_fade_factor=comet_fade_factor,
             enable_timelapse=self.check_enable_timelapse.isChecked(),
             output_dir=self.output_dir,
+            video_fps=video_fps,
         )
         self.process_thread.progress.connect(self.update_progress)
         self.process_thread.preview_update.connect(self.update_preview)
@@ -892,3 +914,219 @@ class MainWindow(QMainWindow):
         filename = f"{range_str}_StarTrail_{mode_name}{tail_suffix}_{wb_name}{gap_suffix}.tif"
 
         return filename
+
+    def create_menu_bar(self):
+        """创建菜单栏"""
+        menubar = self.menuBar()
+
+        # 文件菜单
+        file_menu = menubar.addMenu("文件(&F)")
+
+        # 打开文件夹
+        open_folder_action = QAction("打开图片目录...(&O)", self)
+        open_folder_action.setShortcut("Ctrl+O")
+        open_folder_action.triggered.connect(self.select_folder)
+        file_menu.addAction(open_folder_action)
+
+        # 选择输出目录
+        output_dir_action = QAction("选择输出目录...(&D)", self)
+        output_dir_action.triggered.connect(self.select_output_dir)
+        file_menu.addAction(output_dir_action)
+
+        file_menu.addSeparator()
+
+        # 退出
+        exit_action = QAction("退出(&Q)", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        # 编辑菜单
+        edit_menu = menubar.addMenu("编辑(&E)")
+
+        # 偏好设置
+        preferences_action = QAction("偏好设置...(&P)", self)
+        preferences_action.setShortcut("Ctrl+,")
+        preferences_action.triggered.connect(self.show_preferences)
+        edit_menu.addAction(preferences_action)
+
+        # 处理菜单
+        process_menu = menubar.addMenu("处理(&P)")
+
+        # 开始处理
+        start_action = QAction("开始处理(&S)", self)
+        start_action.setShortcut("Ctrl+R")
+        start_action.triggered.connect(self.start_processing)
+        process_menu.addAction(start_action)
+
+        # 停止处理
+        stop_action = QAction("停止处理(&T)", self)
+        stop_action.setShortcut("Ctrl+.")
+        stop_action.triggered.connect(self.stop_processing)
+        process_menu.addAction(stop_action)
+
+        process_menu.addSeparator()
+
+        # 保存结果
+        save_action = QAction("保存结果...(&V)", self)
+        save_action.setShortcut("Ctrl+S")
+        save_action.triggered.connect(self.save_result)
+        process_menu.addAction(save_action)
+
+        # 窗口菜单
+        window_menu = menubar.addMenu("窗口(&W)")
+
+        # 最小化
+        minimize_action = QAction("最小化(&M)", self)
+        minimize_action.setShortcut("Ctrl+M")
+        minimize_action.triggered.connect(self.showMinimized)
+        window_menu.addAction(minimize_action)
+
+        # 缩放
+        zoom_action = QAction("缩放(&Z)", self)
+        zoom_action.triggered.connect(self.toggle_maximized)
+        window_menu.addAction(zoom_action)
+
+        # 帮助菜单
+        help_menu = menubar.addMenu("帮助(&H)")
+
+        # 使用指南
+        guide_action = QAction("使用指南(&G)", self)
+        guide_action.triggered.connect(self.show_guide)
+        help_menu.addAction(guide_action)
+
+        help_menu.addSeparator()
+
+        # 关于
+        about_action = QAction("关于 彗星星轨(&A)", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
+
+    def show_about(self):
+        """显示关于对话框"""
+        dialog = AboutDialog(self)
+        dialog.exec_()
+
+    def show_preferences(self):
+        """显示偏好设置对话框"""
+        dialog = PreferencesDialog(self)
+        if dialog.exec_():
+            # 如果用户点击了确定，可以在这里保存设置
+            logger.info("偏好设置已更新")
+
+    def show_guide(self):
+        """显示使用指南"""
+        guide_text = """
+        <h2>彗星星轨 - 使用指南</h2>
+
+        <h3>基本流程：</h3>
+        <ol>
+            <li><b>选择文件：</b>点击"选择图片目录"，选择包含照片的文件夹<br>
+            支持格式：RAW (CR2, NEF, ARW等)、TIFF、JPG、PNG</li>
+            <li><b>选择模式：</b>
+                <ul>
+                    <li><b>常规星轨：</b>标准的星轨叠加效果</li>
+                    <li><b>彗星星轨：</b>模拟彗星尾巴的渐变效果</li>
+                </ul>
+            </li>
+            <li><b>调整参数：</b>
+                <ul>
+                    <li><b>RAW处理：</b>调整曝光补偿和白平衡</li>
+                    <li><b>彗星衰减因子：</b>控制尾巴长度（仅彗星模式）</li>
+                    <li><b>星点对齐：</b>补偿地球自转导致的星点偏移</li>
+                    <li><b>间隙填充：</b>填补由于间隔拍摄产生的空隙</li>
+                </ul>
+            </li>
+            <li><b>开始处理：</b>点击"开始处理"按钮</li>
+            <li><b>保存结果：</b>处理完成后点击"保存结果"</li>
+        </ol>
+
+        <h3>彗星模式说明：</h3>
+        <p>彗星模式会创建渐变的尾巴效果：</p>
+        <ul>
+            <li>衰减因子 0.90-0.95：短尾巴</li>
+            <li>衰减因子 0.96-0.98：中等尾巴（推荐）</li>
+            <li>衰减因子 0.99+：长尾巴</li>
+        </ul>
+
+        <h3>延时视频：</h3>
+        <p>勾选"生成延时视频"可以将处理过程制作成视频，展示星轨形成的动态过程。</p>
+
+        <h3>输出位置：</h3>
+        <p>默认输出到：原片目录/彗星星轨/</p>
+        <p>可通过"选择输出目录"自定义输出位置。</p>
+        """
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle("使用指南")
+        msg.setTextFormat(Qt.RichText)
+        msg.setText(guide_text)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.button(QMessageBox.Ok).setText("关闭")
+        msg.exec_()
+
+    def toggle_maximized(self):
+        """切换最大化状态"""
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+
+    def stop_processing(self):
+        """停止处理"""
+        if self.process_thread and self.process_thread.isRunning():
+            self.process_thread._is_running = False
+            self.process_thread.wait()
+            logger.info("处理已停止")
+
+    def save_result(self):
+        """手动保存结果"""
+        if self.result_image is None:
+            QMessageBox.warning(self, "警告", "没有可保存的结果\n请先处理图片")
+            return
+
+        # 让用户选择保存位置
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "保存星轨图片",
+            str(Path.home() / "StarTrail.tif"),
+            "TIFF 文件 (*.tif *.tiff);;PNG 文件 (*.png);;JPEG 文件 (*.jpg *.jpeg)"
+        )
+
+        if not file_path:
+            return
+
+        try:
+            from core.output_exporter import OutputExporter
+            exporter = OutputExporter()
+
+            file_path = Path(file_path)
+
+            # 根据文件扩展名选择保存格式
+            if file_path.suffix.lower() in ['.tif', '.tiff']:
+                success = exporter.save_auto(self.result_image, file_path)
+            elif file_path.suffix.lower() == '.png':
+                import imageio
+                # 转换为 8-bit
+                image_8bit = (self.result_image * 255).astype(np.uint8)
+                imageio.imwrite(file_path, image_8bit)
+                success = True
+            elif file_path.suffix.lower() in ['.jpg', '.jpeg']:
+                import imageio
+                # 转换为 8-bit
+                image_8bit = (self.result_image * 255).astype(np.uint8)
+                imageio.imwrite(file_path, image_8bit, quality=95)
+                success = True
+            else:
+                success = exporter.save_auto(self.result_image, file_path)
+
+            if success:
+                QMessageBox.information(self, "成功", f"文件已保存至:\n{file_path}")
+                logger.info(f"手动保存成功: {file_path}")
+            else:
+                QMessageBox.warning(self, "错误", "保存文件失败")
+                logger.error(f"手动保存失败: {file_path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"保存文件时出错:\n{str(e)}")
+            logger.error(f"保存文件异常: {e}", exc_info=True)

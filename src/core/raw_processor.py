@@ -12,13 +12,19 @@ from PIL import Image
 
 
 class RawProcessor:
-    """RAW 文件处理器"""
+    """RAW 文件处理器 - 支持 RAW、TIFF、JPG 格式"""
 
     # 支持的 RAW 格式
-    SUPPORTED_FORMATS = {".nef", ".cr2", ".arw", ".raf", ".dng", ".orf", ".rw2"}
+    SUPPORTED_RAW_FORMATS = {".nef", ".cr2", ".arw", ".raf", ".dng", ".orf", ".rw2"}
+
+    # 支持的其他格式
+    SUPPORTED_IMAGE_FORMATS = {".tif", ".tiff", ".jpg", ".jpeg", ".png"}
+
+    # 所有支持的格式
+    SUPPORTED_FORMATS = SUPPORTED_RAW_FORMATS | SUPPORTED_IMAGE_FORMATS
 
     def __init__(self):
-        """初始化 RAW 处理器"""
+        """初始化处理器"""
         self.default_params = {
             "use_camera_wb": True,  # 使用相机白平衡
             "output_bps": 16,  # 16-bit 输出
@@ -29,15 +35,28 @@ class RawProcessor:
         }
 
     @staticmethod
-    def is_raw_file(file_path: Path) -> bool:
+    def is_supported_file(file_path: Path) -> bool:
         """
-        检查文件是否为支持的 RAW 格式
+        检查文件是否为支持的格式
 
         Args:
             file_path: 文件路径
 
         Returns:
-            如果是支持的 RAW 格式返回 True
+            如果是支持的格式返回 True
+        """
+        return file_path.suffix.lower() in RawProcessor.SUPPORTED_FORMATS
+
+    @staticmethod
+    def is_raw_file(file_path: Path) -> bool:
+        """
+        检查文件是否为 RAW 格式（保持向后兼容）
+
+        Args:
+            file_path: 文件路径
+
+        Returns:
+            如果是支持的格式返回 True
         """
         return file_path.suffix.lower() in RawProcessor.SUPPORTED_FORMATS
 
@@ -49,12 +68,13 @@ class RawProcessor:
         **kwargs,
     ) -> np.ndarray:
         """
-        处理 RAW 文件并返回 RGB 图像数组
+        处理图像文件并返回 RGB 图像数组
+        支持 RAW、TIFF、JPG、PNG 格式
 
         Args:
-            raw_path: RAW 文件路径
-            white_balance: 白平衡模式 ('camera', 'daylight', 'auto')
-            exposure_compensation: 曝光补偿（-3.0 到 +3.0 EV）
+            raw_path: 图像文件路径
+            white_balance: 白平衡模式 ('camera', 'daylight', 'auto') - 仅对 RAW 有效
+            exposure_compensation: 曝光补偿（-3.0 到 +3.0 EV） - 仅对 RAW 有效
             **kwargs: 其他 rawpy 参数
 
         Returns:
@@ -67,31 +87,52 @@ class RawProcessor:
         if not raw_path.exists():
             raise FileNotFoundError(f"文件不存在: {raw_path}")
 
-        if not self.is_raw_file(raw_path):
+        if not self.is_supported_file(raw_path):
             raise ValueError(f"不支持的文件格式: {raw_path.suffix}")
 
-        # 准备处理参数
-        params = self.default_params.copy()
-        params.update(kwargs)
+        suffix = raw_path.suffix.lower()
 
-        # 设置白平衡
-        if white_balance == "camera":
-            params["use_camera_wb"] = True
-        elif white_balance == "daylight":
-            params["use_camera_wb"] = False
-            params["use_auto_wb"] = False
-        elif white_balance == "auto":
-            params["use_camera_wb"] = False
-            params["use_auto_wb"] = True
+        # 如果是 RAW 格式，使用 rawpy 处理
+        if suffix in self.SUPPORTED_RAW_FORMATS:
+            # 准备处理参数
+            params = self.default_params.copy()
+            params.update(kwargs)
 
-        # 设置曝光补偿（2^EV）
-        params["exp_shift"] = 2.0**exposure_compensation
+            # 设置白平衡
+            if white_balance == "camera":
+                params["use_camera_wb"] = True
+            elif white_balance == "daylight":
+                params["use_camera_wb"] = False
+                params["use_auto_wb"] = False
+            elif white_balance == "auto":
+                params["use_camera_wb"] = False
+                params["use_auto_wb"] = True
 
-        # 处理 RAW 文件
-        with rawpy.imread(str(raw_path)) as raw:
-            rgb = raw.postprocess(**params)
+            # 设置曝光补偿（2^EV）
+            params["exp_shift"] = 2.0**exposure_compensation
 
-        return rgb
+            # 处理 RAW 文件
+            with rawpy.imread(str(raw_path)) as raw:
+                rgb = raw.postprocess(**params)
+
+            return rgb
+
+        # 如果是 TIFF、JPG、PNG 等格式，使用 PIL 读取
+        else:
+            img = Image.open(raw_path)
+
+            # 转换为 RGB（如果不是）
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # 转换为 numpy 数组
+            rgb = np.array(img)
+
+            # 如果是 8-bit，转换为 16-bit
+            if rgb.dtype == np.uint8:
+                rgb = (rgb.astype(np.uint16) * 257)  # 8-bit -> 16-bit
+
+            return rgb
 
     def get_thumbnail(
         self, raw_path: Path, max_size: int = 512
