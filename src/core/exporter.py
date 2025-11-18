@@ -1,4 +1,8 @@
 """
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 图像导出模块
 
 负责将处理后的图像保存为各种格式
@@ -63,7 +67,7 @@ class ImageExporter:
         try:
             # 如果需要，先应用拉伸
             if apply_stretch and image.dtype == np.uint16:
-                print("应用亮度拉伸 (1%-99.5%)...")
+                logger.warning("应用亮度拉伸 (1%-99.5%)...")
                 image = ImageExporter.apply_stretch(image)
 
             if bits == 8:
@@ -105,7 +109,7 @@ class ImageExporter:
             return True
 
         except Exception as e:
-            print(f"保存 TIFF 失败: {e}")
+            logger.info(f"保存 TIFF 失败: {e}")
             return False
 
     @staticmethod
@@ -136,7 +140,7 @@ class ImageExporter:
             return True
 
         except Exception as e:
-            print(f"保存 JPEG 失败: {e}")
+            logger.info(f"保存 JPEG 失败: {e}")
             return False
 
     @staticmethod
@@ -165,7 +169,7 @@ class ImageExporter:
             return True
 
         except Exception as e:
-            print(f"保存 PNG 失败: {e}")
+            logger.info(f"保存 PNG 失败: {e}")
             return False
 
     @staticmethod
@@ -207,6 +211,6 @@ if __name__ == "__main__":
     exporter = ImageExporter()
 
     # 测试保存
-    print("测试保存 TIFF...")
+    logger.info("测试保存 TIFF...")
     success = exporter.save_tiff(test_img, Path("test_output.tiff"))
-    print(f"TIFF 保存: {'成功' if success else '失败'}")
+    logger.info(f"TIFF 保存: {'成功' if success else '失败'}")

@@ -1,4 +1,8 @@
 """
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 蒙版工具模块
 
 提供蒙版预览和简单处理功能
@@ -120,5 +124,5 @@ class MaskUtils:
 
 if __name__ == '__main__':
     """测试代码"""
-    print("MaskUtils 工具模块")
-    print("提供蒙版预览和基本处理功能")
+    logger.info("MaskUtils 工具模块")
+    logger.info("提供蒙版预览和基本处理功能")

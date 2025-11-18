@@ -147,7 +147,7 @@ class StackingEngine:
                 # 对齐图像
                 image, success = self.aligner.align(image, self.reference, max_shift=50)
                 if not success:
-                    print(f"警告: 第 {self.count + 1} 张图像对齐失败，使用原图")
+                    logger.warning(f"第 {self.count + 1} 张图像对齐失败，使用原图")
 
         # 转换为 float32 以避免溢出
         img_float = image.astype(np.float32)
@@ -364,6 +364,6 @@ if __name__ == "__main__":
     engine.add_image(img3)
     result = engine.get_result()
 
-    print(f"处理了 {engine.count} 张图像")
-    print(f"结果形状: {result.shape}")
-    print(f"结果数据类型: {result.dtype}")
+    logger.info(f"处理了 {engine.count} 张图像")
+    logger.info(f"结果形状: {result.shape}")
+    logger.info(f"结果数据类型: {result.dtype}")

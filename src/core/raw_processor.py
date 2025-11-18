@@ -1,4 +1,8 @@
 """
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 RAW 图像处理模块
 
 负责读取和处理各种相机的 RAW 格式文件
@@ -173,7 +177,7 @@ class RawProcessor:
                 return np.array(img)
 
         except Exception as e:
-            print(f"获取缩略图失败: {e}")
+            logger.info(f"获取缩略图失败: {e}")
             return None
 
     def get_metadata(self, raw_path: Path) -> Dict[str, Any]:
@@ -197,7 +201,7 @@ class RawProcessor:
                 metadata["width"] = raw.sizes.width
                 metadata["height"] = raw.sizes.height
         except Exception as e:
-            print(f"读取元数据失败: {e}")
+            logger.info(f"读取元数据失败: {e}")
 
         return metadata
 
@@ -208,4 +212,4 @@ if __name__ == "__main__":
 
     # 测试文件检查
     test_file = Path("test.nef")
-    print(f"是否为 RAW 文件: {processor.is_raw_file(test_file)}")
+    logger.info(f"是否为 RAW 文件: {processor.is_raw_file(test_file)}")

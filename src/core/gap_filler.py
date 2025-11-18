@@ -1,4 +1,8 @@
 """
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 星轨间隔填充模块
 
 用于填补星轨之间的间隔，使星轨更加连续流畅
@@ -420,25 +424,25 @@ if __name__ == "__main__":
             if j + 10 < 200:
                 test_img[i, j : j + 10, :] = 50000  # 亮点
 
-    print("创建测试图像")
-    print(f"图像形状: {test_img.shape}")
+    logger.info("创建测试图像")
+    logger.info(f"图像形状: {test_img.shape}")
 
     # 测试线性填充
-    print("\n测试线性填充...")
+    logger.info("\n测试线性填充...")
     filler_linear = GapFiller(method="linear")
     result_linear = filler_linear.fill_gaps(test_img, gap_size=5, intensity_threshold=0.1)
-    print(f"填充完成，结果形状: {result_linear.shape}")
+    logger.info(f"填充完成，结果形状: {result_linear.shape}")
 
     # 测试形态学填充
-    print("\n测试形态学填充...")
+    logger.info("\n测试形态学填充...")
     filler_morph = GapFiller(method="morphological")
     result_morph = filler_morph.fill_gaps(test_img, gap_size=3)
-    print(f"填充完成，结果形状: {result_morph.shape}")
+    logger.info(f"填充完成，结果形状: {result_morph.shape}")
 
     # 测试平滑器
-    print("\n测试星轨平滑...")
+    logger.info("\n测试星轨平滑...")
     smoother = StarTrailSmoother()
     result_smooth = smoother.smooth_trails(test_img, window_size=5, sigma=1.0)
-    print(f"平滑完成，结果形状: {result_smooth.shape}")
+    logger.info(f"平滑完成，结果形状: {result_smooth.shape}")
 
-    print("\n✅ 所有测试完成！")
+    logger.info("\n✅ 所有测试完成！")

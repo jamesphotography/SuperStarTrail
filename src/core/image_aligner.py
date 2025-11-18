@@ -7,6 +7,9 @@
 from typing import Optional, Tuple
 import numpy as np
 import cv2
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class ImageAligner:
@@ -51,7 +54,7 @@ class ImageAligner:
                 self.matcher = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
             except AttributeError:
                 # SIFT 在某些 OpenCV 版本中不可用
-                print("SIFT 不可用，降级使用 ORB")
+                logger.warning("SIFT 不可用，降级使用 ORB")
                 self.method = "orb"
                 self._init_detector()
 
@@ -85,7 +88,7 @@ class ImageAligner:
 
         # 检查是否找到足够的特征点
         if len(kp_img) < 10 or len(kp_ref) < 10:
-            print(f"警告: 特征点不足 (图像: {len(kp_img)}, 参考: {len(kp_ref)})")
+            logger.warning(f"特征点不足 (图像: {len(kp_img)}, 参考: {len(kp_ref)})")
             return image, False
 
         # 特征匹配
@@ -96,7 +99,7 @@ class ImageAligner:
 
         # 检查匹配数量
         if len(matches) < 10:
-            print(f"警告: 匹配点不足 ({len(matches)} 个)")
+            logger.warning(f"匹配点不足 ({len(matches)} 个)")
             return image, False
 
         # 按距离排序，取最好的匹配
@@ -119,7 +122,7 @@ class ImageAligner:
             )
 
             if M is None:
-                print("警告: 无法计算变换矩阵")
+                logger.warning("无法计算变换矩阵")
                 return image, False
 
             # 检查平移量是否合理
@@ -127,7 +130,7 @@ class ImageAligner:
             shift = np.sqrt(tx**2 + ty**2)
 
             if shift > max_shift:
-                print(f"警告: 偏移过大 ({shift:.1f} 像素，最大 {max_shift})")
+                logger.warning(f"偏移过大 ({shift:.1f} 像素，最大 {max_shift})")
                 return image, False
 
             # 应用变换
@@ -143,7 +146,7 @@ class ImageAligner:
 
             # 输出对齐信息
             inliers = np.sum(mask)
-            print(
+            logger.debug(
                 f"对齐成功: 平移 ({tx:.1f}, {ty:.1f}) 像素, "
                 f"内点: {inliers}/{len(good_matches)}"
             )
@@ -151,7 +154,7 @@ class ImageAligner:
             return aligned, True
 
         except Exception as e:
-            print(f"对齐失败: {e}")
+            logger.error(f"对齐失败: {e}")
             return image, False
 
     def align_simple(
@@ -214,12 +217,12 @@ class ImageAligner:
             )
 
             tx, ty = warp_matrix[0, 2], warp_matrix[1, 2]
-            print(f"ECC 对齐: 平移 ({tx:.2f}, {ty:.2f}) 像素, 相关系数: {cc:.4f}")
+            logger.debug(f"ECC 对齐: 平移 ({tx:.2f}, {ty:.2f}) 像素, 相关系数: {cc:.4f}")
 
             return aligned
 
         except Exception as e:
-            print(f"ECC 对齐失败: {e}, 返回原图")
+            logger.warning(f"ECC 对齐失败: {e}, 返回原图")
             return image
 
     @staticmethod
@@ -257,7 +260,7 @@ class ImageAligner:
             )
             return shift
         except Exception as e:
-            print(f"偏移检测失败: {e}")
+            logger.error(f"偏移检测失败: {e}")
             return None
 
 
@@ -277,9 +280,9 @@ if __name__ == "__main__":
     aligned, success = aligner.align(shifted, reference)
 
     if success:
-        print("✅ 对齐测试成功")
+        logger.info("✅ 对齐测试成功")
         # 计算差异
         diff = np.abs(aligned.astype(np.float32) - reference.astype(np.float32))
-        print(f"平均差异: {np.mean(diff):.2f}")
+        logger.info(f"平均差异: {np.mean(diff):.2f}")
     else:
-        print("❌ 对齐测试失败")
+        logger.info("❌ 对齐测试失败")
