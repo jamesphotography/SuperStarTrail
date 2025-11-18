@@ -214,25 +214,40 @@ class StackingEngine:
         if self.result is None:
             raise ValueError("还没有添加任何图像")
 
-        result = self.result.copy()
+        # 内存优化：仅在需要修改时才拷贝
+        # 如果不需要归一化也不需要填充，返回视图而非拷贝
+        needs_modification = (
+            normalize or
+            self.mode == StackMode.ADDITION or
+            (apply_gap_filling and self.enable_gap_filling and self.gap_filler is not None)
+        )
+
+        result = self.result.copy() if needs_modification else self.result
 
         # 对于 Addition 模式，可能需要归一化
         if normalize or self.mode == StackMode.ADDITION:
-            # 裁剪到有效范围
+            # 裁剪到有效范围（np.clip 返回新数组）
             result = np.clip(result, 0, 65535)
 
         # 应用间隔填充（如果启用且需要）
         if apply_gap_filling and self.enable_gap_filling and self.gap_filler is not None:
-            print(f"应用间隔填充 (方法: {self.gap_fill_method}, 间隔大小: {self.gap_size})")
-            result_uint16 = result.astype(np.uint16)
+            logger.info(f"应用间隔填充 (方法: {self.gap_fill_method}, 间隔大小: {self.gap_size})")
+            # 确保类型正确
+            if result.dtype != np.uint16:
+                result = result.astype(np.uint16)
             result_filled = self.gap_filler.fill_gaps(
-                result_uint16,
+                result,
                 gap_size=self.gap_size,
                 intensity_threshold=0.1,
             )
-            return result_filled.astype(np.uint16)
+            # gap_filler 已经返回 uint16，避免重复转换
+            return result_filled
 
-        return result.astype(np.uint16)
+        # 仅在类型不匹配时才转换
+        if result.dtype != np.uint16:
+            return result.astype(np.uint16)
+        else:
+            return result
 
     def process_batch(
         self,

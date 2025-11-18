@@ -28,15 +28,28 @@ class Settings:
         },
         # 彗星效果设置
         "comet": {
-            "default_fade_factor": 0.980,
+            "default_fade_factor": 0.97,  # 默认中等尾巴长度
             "default_alignment": False,
-            "default_gap_fill": False,
+            "default_gap_fill": True,  # 默认启用间隙填充
+        },
+        # 间隙填充设置
+        "gap_filling": {
+            "method": "morphological",  # morphological, interpolation
+            "gap_size": 3,  # 像素
+        },
+        # 预览设置
+        "preview": {
+            "max_size": 800,  # 预览最大尺寸
+            "update_interval": 3,  # 每处理N张更新一次预览
+            "percentile_low": 1.0,  # 亮度拉伸低百分位
+            "percentile_high": 99.5,  # 亮度拉伸高百分位
         },
         # 输出设置
         "output": {
             "image_format": "TIFF",  # TIFF, PNG, JPEG
             "video_format": "MP4",  # MP4, MOV
             "video_fps": 25,
+            "video_resolution": [3840, 2160],  # 4K
             "video_quality": "high",  # high, medium, low
             "auto_timelapse": False,
         },
@@ -139,6 +152,33 @@ class Settings:
         """设置语言"""
         self.set("general", "language", language)
         self.save_settings()
+
+    def get_gap_fill_method(self) -> str:
+        """获取间隙填充方法"""
+        return self.get("gap_filling", "method", "morphological")
+
+    def get_gap_size(self) -> int:
+        """获取间隙大小"""
+        return self.get("gap_filling", "gap_size", 3)
+
+    def get_preview_max_size(self) -> int:
+        """获取预览最大尺寸"""
+        return self.get("preview", "max_size", 800)
+
+    def get_preview_update_interval(self) -> int:
+        """获取预览更新间隔"""
+        return self.get("preview", "update_interval", 3)
+
+    def get_preview_percentiles(self) -> tuple:
+        """获取预览拉伸百分位数"""
+        low = self.get("preview", "percentile_low", 1.0)
+        high = self.get("preview", "percentile_high", 99.5)
+        return (low, high)
+
+    def get_video_resolution(self) -> tuple:
+        """获取视频分辨率"""
+        res = self.get("output", "video_resolution", [3840, 2160])
+        return tuple(res)
 
 
 # 全局设置实例

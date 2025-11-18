@@ -34,6 +34,7 @@ from core.raw_processor import RawProcessor
 from core.stacking_engine import StackingEngine, StackMode
 from utils.logger import setup_logger
 from utils.settings import get_settings
+from utils.file_naming import FileNamingService
 from ui.dialogs import AboutDialog, PreferencesDialog
 from i18n import get_translator, set_language
 from ui.styles import (
@@ -118,53 +119,14 @@ class ProcessThread(QThread):
             # 如果启用延时视频，生成输出路径
             timelapse_output_path = None
             if self.enable_timelapse:
-                # 生成智能视频文件名（和 TIFF 文件名格式一致）
-                first_name = self.file_paths[0].stem
-                last_name = self.file_paths[-1].stem
-
-                try:
-                    first_parts = first_name.rsplit('_', 1)
-                    last_parts = last_name.rsplit('_', 1)
-
-                    if len(first_parts) == 2 and len(last_parts) == 2:
-                        prefix = first_parts[0]
-                        first_num = first_parts[1]
-                        last_num = last_parts[1]
-                        range_str = f"{prefix}_{first_num}-{last_num}"
-                    else:
-                        range_str = f"{first_name}-{last_name}"
-                except:
-                    range_str = f"{first_name}-{last_name}"
-
-                # 堆栈模式
-                mode_map = {
-                    StackMode.COMET: "Comet",
-                    StackMode.LIGHTEN: "Lighten",
-                    StackMode.AVERAGE: "Average",
-                    StackMode.DARKEN: "Darken",
-                }
-                mode_name = mode_map.get(self.stack_mode, "Comet")
-
-                # 彗星尾巴长度（仅彗星模式）
-                tail_suffix = ""
-                if self.stack_mode == StackMode.COMET:
-                    tail_map = {
-                        0.95: "ShortTail",
-                        0.97: "MidTail",
-                        0.99: "LongTail"
-                    }
-                    tail_suffix = "_" + tail_map.get(self.comet_fade_factor, "MidTail")
-
-                # 白平衡
-                wb_value = self.raw_params.get('white_balance', 'camera')
-                wb_map = {"camera": "CameraWB", "daylight": "Daylight", "auto": "AutoWB"}
-                wb_name = wb_map.get(wb_value, "CameraWB")
-
-                # 间隔填充
-                gap_suffix = "_Gapped" if self.enable_gap_filling else ""
-
-                # 视频文件名：和 TIFF 相同格式，但加上 Timelapse_4K_25FPS
-                video_filename = f"{range_str}_StarTrail_{mode_name}{tail_suffix}_{wb_name}{gap_suffix}_Timelapse_4K_25FPS.mp4"
+                # 使用文件命名服务生成视频文件名
+                video_filename = FileNamingService.generate_timelapse_filename(
+                    file_paths=self.file_paths,
+                    stack_mode=self.stack_mode,
+                    white_balance=self.raw_params.get('white_balance', 'camera'),
+                    comet_fade_factor=self.comet_fade_factor if self.stack_mode == StackMode.COMET else None,
+                    fps=self.video_fps
+                )
                 timelapse_output_path = output_dir / video_filename
 
             engine = StackingEngine(
@@ -398,6 +360,10 @@ class MainWindow(QMainWindow):
         self.process_thread: ProcessThread = None
         self.output_dir: Path = None  # 输出目录
         self.timelapse_video_path: Path = None  # 延时视频路径
+
+        # 预览性能优化：缓存拉伸参数，避免每次都计算百分位数
+        self._preview_stretch_cache = None  # (p_low, p_high)
+        self._preview_cache_valid = False
 
         # 初始化 UI
         self.init_ui()
@@ -784,9 +750,14 @@ class MainWindow(QMainWindow):
         self.progress_bar.setMaximum(len(self.raw_files))
         self.label_status.setText(self.tr.tr("preparing"))
 
-        # 使用固定的最佳参数
-        gap_fill_method = "morphological"  # 形态学算法，经过测试最佳
-        gap_size = 3  # 3像素，适合大部分场景
+        # 重置预览缓存（新处理开始）
+        self._preview_cache_valid = False
+        self._preview_stretch_cache = None
+
+        # 从配置获取参数
+        settings = get_settings()
+        gap_fill_method = settings.get_gap_fill_method()
+        gap_size = settings.get_gap_size()
 
         # 获取彗星模式参数
         comet_fade_map = {
@@ -847,13 +818,16 @@ class MainWindow(QMainWindow):
         )
 
     def update_preview(self, image: np.ndarray):
-        """更新预览图像（自动曝光优化）"""
+        """更新预览图像（自动曝光优化，使用缓存提升性能）"""
         import time
         start_time = time.time()
 
+        # 从配置获取预览参数
+        settings = get_settings()
+        max_size = settings.get_preview_max_size()
+
         # 先缩放再做亮度拉伸，大幅提升速度
         h, w = image.shape[:2]
-        max_size = 800
 
         # 先缩小图像以加快后续处理
         if max(h, w) > max_size:
@@ -866,9 +840,19 @@ class MainWindow(QMainWindow):
 
         # 转换为 8-bit 用于显示，使用自动拉伸提升亮度
         if image_small.dtype == np.uint16:
-            # 对缩小后的图像使用百分位数拉伸（速度快很多）
-            p_low = np.percentile(image_small, 1)   # 1% 最暗像素
-            p_high = np.percentile(image_small, 99.5)  # 99.5% 最亮像素
+            # 使用缓存的拉伸参数（仅在第一帧或缓存失效时计算）
+            if not self._preview_cache_valid or self._preview_stretch_cache is None:
+                # 从配置获取百分位数
+                percentile_low, percentile_high = settings.get_preview_percentiles()
+                # 对缩小后的图像使用百分位数拉伸（O(n log n)，较慢）
+                p_low = np.percentile(image_small, percentile_low)
+                p_high = np.percentile(image_small, percentile_high)
+                self._preview_stretch_cache = (p_low, p_high)
+                self._preview_cache_valid = True
+                logger.debug(f"预览拉伸参数已缓存: low={p_low:.1f}, high={p_high:.1f}")
+            else:
+                # 使用缓存的参数（快速）
+                p_low, p_high = self._preview_stretch_cache
 
             # 拉伸到 0-255
             img_stretched = np.clip((image_small - p_low) / (p_high - p_low) * 255, 0, 255)
@@ -889,7 +873,7 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
 
         elapsed = time.time() - start_time
-        logger.info(f"预览更新完成，耗时: {elapsed:.3f}秒")
+        logger.debug(f"预览更新完成，耗时: {elapsed:.3f}秒")
 
     def processing_finished(self, result: np.ndarray):
         """处理完成"""
@@ -1023,62 +1007,27 @@ class MainWindow(QMainWindow):
             logger.error(f"播放完成音效失败: {e}")
 
     def generate_output_filename(self) -> str:
-        """生成智能输出文件名"""
+        """生成智能输出文件名（使用统一的文件命名服务）"""
         if not self.raw_files or len(self.raw_files) == 0:
-            return "star_trail.tiff"
+            return "star_trail.tif"
 
-        # 提取第一张和最后一张的文件名（去掉扩展名）
-        first_name = self.raw_files[0].stem  # 例如：Z9L_8996
-        last_name = self.raw_files[-1].stem  # 例如：Z9L_9211
+        # 获取当前设置
+        stack_mode = self.get_stack_mode()
+        white_balance = ["camera", "daylight", "auto"][self.combo_white_balance.currentIndex()]
+        comet_fade_factor = None
+        if stack_mode == StackMode.COMET:
+            comet_fade_map = {0: 0.96, 1: 0.97, 2: 0.98}
+            comet_fade_factor = comet_fade_map[self.combo_comet_tail.currentIndex()]
 
-        # 提取编号部分（假设格式为 PREFIX_NUMBER）
-        # 例如：Z9L_8996 → Z9L, 8996
-        try:
-            # 尝试分割出前缀和数字
-            first_parts = first_name.rsplit('_', 1)
-            last_parts = last_name.rsplit('_', 1)
-
-            if len(first_parts) == 2 and len(last_parts) == 2:
-                prefix = first_parts[0]  # Z9L
-                first_num = first_parts[1]  # 8996
-                last_num = last_parts[1]   # 9211
-                range_str = f"{prefix}_{first_num}-{last_num}"
-            else:
-                # 如果分割失败，使用完整文件名
-                range_str = f"{first_name}-{last_name}"
-        except:
-            range_str = f"{first_name}-{last_name}"
-
-        # 堆栈模式
-        mode_map = {
-            0: "Comet",
-            1: "Lighten",
-            2: "Average",
-            3: "Darken",
-        }
-        mode_name = mode_map.get(self.combo_stack_mode.currentIndex(), "Comet")
-
-        # 彗星尾巴长度（仅彗星模式）
-        tail_suffix = ""
-        if self.combo_stack_mode.currentIndex() == 0:  # Comet模式
-            tail_map = {
-                0: "ShortTail",
-                1: "MidTail",
-                2: "LongTail"
-            }
-            tail_suffix = "_" + tail_map.get(self.combo_comet_tail.currentIndex(), "MidTail")
-
-        # 白平衡
-        wb_map = {0: "CameraWB", 1: "Daylight", 2: "AutoWB"}
-        wb_name = wb_map.get(self.combo_white_balance.currentIndex(), "CameraWB")
-
-        # 间隔填充
-        gap_suffix = "_Gapped" if self.check_enable_gap_filling.isChecked() else ""
-
-        # 组合文件名
-        filename = f"{range_str}_StarTrail_{mode_name}{tail_suffix}_{wb_name}{gap_suffix}.tif"
-
-        return filename
+        # 使用文件命名服务
+        return FileNamingService.generate_output_filename(
+            file_paths=self.raw_files,
+            stack_mode=stack_mode,
+            white_balance=white_balance,
+            comet_fade_factor=comet_fade_factor,
+            enable_gap_filling=self.check_enable_gap_filling.isChecked(),
+            file_extension="tif"
+        )
 
     def create_menu_bar(self):
         """创建菜单栏"""
