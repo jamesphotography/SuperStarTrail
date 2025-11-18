@@ -6,6 +6,7 @@
 
 from pathlib import Path
 from typing import List
+from threading import Event
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -91,7 +92,7 @@ class ProcessThread(QThread):
         self.output_dir = output_dir
         self.translator = translator
         self.video_fps = video_fps
-        self._is_running = True
+        self._stop_event = Event()  # 使用线程安全的 Event 替代布尔标志
 
     def run(self):
         """执行处理"""
@@ -182,6 +183,17 @@ class ProcessThread(QThread):
                 engine.set_comet_fade_factor(self.comet_fade_factor)
                 logger.info(f"彗星模式: 衰减因子 = {self.comet_fade_factor}")
 
+            # 检查功能是否因依赖缺失而被降级
+            if self.enable_alignment and not engine.enable_alignment:
+                warning_msg = "⚠️  图像对齐功能不可用（OpenCV 未安装），已自动禁用"
+                self.log_message.emit(warning_msg)
+                logger.warning(warning_msg)
+
+            if self.enable_gap_filling and not engine.enable_gap_filling:
+                warning_msg = "⚠️  间隔填充功能不可用（scipy 未安装），已自动禁用"
+                self.log_message.emit(warning_msg)
+                logger.warning(warning_msg)
+
             total = len(self.file_paths)
 
             # 开始处理
@@ -213,9 +225,10 @@ class ProcessThread(QThread):
             self.status_message.emit(f"开始处理 {total} 张图片...")
 
             start_time = time.time()
+            failed_files = []  # 记录失败的文件
 
             for i, path in enumerate(self.file_paths):
-                if not self._is_running:
+                if self._stop_event.is_set():
                     logger.warning("用户取消处理")
                     break
 
@@ -241,6 +254,7 @@ class ProcessThread(QThread):
                     log_msg = f"[{i+1:3d}/{total}] ⚠️  跳过损坏文件: {path.name}"
                     logger.error(f"{log_msg} - {e}")
                     self.log_message.emit(log_msg)
+                    failed_files.append((path.name, str(e)))  # 记录失败的文件和错误信息
                     # 继续处理下一张
 
                 # 发送进度
@@ -267,7 +281,7 @@ class ProcessThread(QThread):
                     self.preview_update.emit(preview)
 
             # 获取最终结果
-            if self._is_running:
+            if not self._stop_event.is_set():
                 total_duration = time.time() - start_time
                 self.log_message.emit("-" * 60)
                 self.log_message.emit("✅ 堆栈完成!")
@@ -317,8 +331,22 @@ class ProcessThread(QThread):
                         self.log_message.emit("❌ 延时视频生成失败")
                         logger.error("延时视频生成失败")
 
+                # 显示失败文件汇总
+                if failed_files:
+                    self.log_message.emit("=" * 60)
+                    self.log_message.emit(f"⚠️  处理汇总: 成功 {total - len(failed_files)}/{total}, 失败 {len(failed_files)} 个文件")
+                    self.log_message.emit("失败文件列表:")
+                    for filename, error in failed_files:
+                        self.log_message.emit(f"  • {filename}: {error}")
+                    logger.warning(f"处理汇总: {len(failed_files)} 个文件失败")
+                    for filename, error in failed_files:
+                        logger.warning(f"  失败: {filename} - {error}")
+                else:
+                    self.log_message.emit("=" * 60)
+                    self.log_message.emit(f"✅ 所有 {total} 个文件处理成功！")
+                    logger.info(f"所有 {total} 个文件处理成功")
+
                 self.log_message.emit("=" * 60)
-                self.log_message.emit("✅ 所有处理完成！")
                 logger.info(f"=" * 60)
                 self.finished.emit(result)
 
@@ -329,8 +357,8 @@ class ProcessThread(QThread):
             self.error.emit(str(e))
 
     def stop(self):
-        """停止处理"""
-        self._is_running = False
+        """停止处理（线程安全）"""
+        self._stop_event.set()
 
 
 class MainWindow(QMainWindow):

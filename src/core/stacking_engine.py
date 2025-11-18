@@ -106,9 +106,10 @@ class StackingEngine:
             try:
                 from .image_aligner import ImageAligner
                 self.aligner = ImageAligner(method="orb")  # 使用快速的 ORB
-            except ImportError:
-                print("警告: OpenCV 未安装，图像对齐功能不可用")
+            except ImportError as e:
+                logger.warning(f"图像对齐功能不可用: OpenCV 未安装 ({e})")
                 self.enable_alignment = False
+                self.aligner = None
 
         # 如果启用间隔填充，初始化填充器
         if enable_gap_filling:
@@ -116,8 +117,9 @@ class StackingEngine:
                 from .gap_filler import GapFiller
                 self.gap_filler = GapFiller(method=gap_fill_method)
             except ImportError as e:
-                print(f"警告: scipy 未安装，间隔填充功能不可用 ({e})")
+                logger.warning(f"间隔填充功能不可用: scipy 未安装 ({e})")
                 self.enable_gap_filling = False
+                self.gap_filler = None
 
     def reset(self):
         """重置引擎状态"""

@@ -147,6 +147,7 @@ class TimelapseGenerator:
         logger.info(f"开始生成视频: {self.output_path}")
         logger.info(f"总帧数: {self.frame_count}, 时长: {self.frame_count / self.fps:.2f} 秒")
 
+        video = None
         try:
             # 使用 OpenCV 创建视频编码器
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # MP4 编码器
@@ -157,15 +158,20 @@ class TimelapseGenerator:
                 self.resolution
             )
 
+            if not video.isOpened():
+                raise RuntimeError("无法打开视频编码器")
+
             # 逐帧写入
             for i, frame_path in enumerate(self.frame_paths):
                 frame = cv2.imread(str(frame_path))
+                if frame is None:
+                    logger.warning(f"无法读取帧: {frame_path}")
+                    continue
                 video.write(frame)
 
                 if (i + 1) % 10 == 0:
                     logger.info(f"编码进度: {i + 1}/{self.frame_count} 帧")
 
-            video.release()
             logger.info(f"视频生成成功: {self.output_path}")
 
             # 清理临时文件
@@ -177,6 +183,12 @@ class TimelapseGenerator:
         except Exception as e:
             logger.error(f"视频生成失败: {e}", exc_info=True)
             return False
+
+        finally:
+            # 确保视频资源被正确释放
+            if video is not None:
+                video.release()
+                logger.debug("VideoWriter 资源已释放")
 
     def cleanup_temp_files(self) -> None:
         """删除临时帧文件"""
