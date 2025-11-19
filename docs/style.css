@@ -262,17 +262,24 @@ body {
     font-size: 1.1rem;
 }
 
-.screenshot-placeholder {
-    background: var(--card-bg);
+.screenshot-container {
+    max-width: 1000px;
+    margin: 0 auto;
     border-radius: 15px;
-    padding: 100px;
-    text-align: center;
-    border: 2px dashed var(--primary-color);
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(74, 144, 226, 0.3);
 }
 
-.screenshot-placeholder p {
-    font-size: 1.5rem;
-    color: var(--text-muted);
+.screenshot-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.screenshot-image:hover {
+    transform: scale(1.02);
 }
 
 /* Download Section */
