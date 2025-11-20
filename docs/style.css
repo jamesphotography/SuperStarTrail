@@ -21,12 +21,111 @@ body {
     line-height: 1.6;
     color: var(--text-color);
     background: var(--darker-bg);
+    padding-top: 70px; /* 为固定导航栏留出空间 */
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+}
+
+/* 导航栏样式 */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(74, 144, 226, 0.2);
+    z-index: 1000;
+    padding: 0;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nav-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.nav-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.nav-toggle span {
+    width: 25px;
+    height: 3px;
+    background: var(--text-color);
+    margin: 3px 0;
+    transition: all 0.3s ease;
+    border-radius: 3px;
+}
+
+.nav-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.nav-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+    margin: 0;
+}
+
+.nav-menu li {
+    margin: 0;
+}
+
+.nav-menu a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: block;
+}
+
+.nav-menu a:hover {
+    color: var(--accent-color);
+    background: rgba(74, 144, 226, 0.1);
 }
 
 /* Hero Section */
@@ -81,6 +180,18 @@ body {
     font-size: 1.5rem;
     color: var(--accent-color);
     margin-bottom: 15px;
+}
+
+.photographer-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.2), rgba(123, 104, 238, 0.2));
+    color: var(--accent-color);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
 }
 
 .tagline {
@@ -207,10 +318,64 @@ body {
     line-height: 1.8;
 }
 
+/* Examples Section */
+.examples {
+    padding: 80px 20px;
+    background: var(--darker-bg);
+}
+
+.examples-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.example-item {
+    background: var(--card-bg);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.example-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(74, 144, 226, 0.3);
+}
+
+.example-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.example-item:hover .example-image {
+    transform: scale(1.05);
+}
+
+.example-caption {
+    padding: 25px;
+    text-align: center;
+}
+
+.example-caption h3 {
+    color: var(--accent-color);
+    margin-bottom: 10px;
+    font-size: 1.4rem;
+}
+
+.example-caption p {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
 /* How It Works */
 .how-it-works {
     padding: 80px 20px;
-    background: var(--darker-bg);
+    background: var(--dark-bg);
 }
 
 .steps {
@@ -419,12 +584,57 @@ footer {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+    body {
+        padding-top: 60px;
+    }
+
+    .nav-toggle {
+        display: flex;
+    }
+
+    .nav-menu {
+        position: fixed;
+        top: 60px;
+        left: -100%;
+        width: 100%;
+        flex-direction: column;
+        background: rgba(26, 26, 46, 0.98);
+        backdrop-filter: blur(10px);
+        padding: 20px 0;
+        gap: 0;
+        transition: left 0.3s ease;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-menu.active {
+        left: 0;
+    }
+
+    .nav-menu li {
+        text-align: center;
+        padding: 10px 20px;
+    }
+
+    .nav-menu a {
+        font-size: 1.1rem;
+        padding: 12px 20px;
+    }
+
+    .hero {
+        padding: 60px 20px;
+    }
+
     .hero h1 {
         font-size: 2.5rem;
     }
 
     .subtitle {
         font-size: 1.2rem;
+    }
+
+    .photographer-badge {
+        font-size: 0.85rem;
+        padding: 6px 16px;
     }
 
     .tagline {
@@ -443,6 +653,10 @@ footer {
 
     .feature-grid,
     .steps {
+        grid-template-columns: 1fr;
+    }
+
+    .examples-grid {
         grid-template-columns: 1fr;
     }
 
