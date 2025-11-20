@@ -155,7 +155,7 @@ class FileNamingService:
         # 白平衡
         wb_name = cls.WHITE_BALANCE_NAMES.get(white_balance, "CameraWB")
 
-        # 组合文件名
-        filename = f"{range_str}_{mode_name}{tail_suffix}_{wb_name}_Timelapse_{fps}FPS.{file_extension}"
+        # 组合文件名 (StarTrail_Timelapse 开头)
+        filename = f"StarTrail_Timelapse_{range_str}_{mode_name}{tail_suffix}_{wb_name}_{fps}FPS.{file_extension}"
 
         return filename

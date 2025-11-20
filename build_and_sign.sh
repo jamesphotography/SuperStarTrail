@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # 配置
 APP_NAME="SuperStarTrail"
-VERSION="0.3.0"
+VERSION="0.5.0"
 BUNDLE_ID="com.jamesphotography.superstartrail"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 
@@ -101,6 +101,12 @@ mkdir -p "$TMP_DMG_DIR"
 
 # 复制应用到临时目录
 cp -R "dist/${APP_NAME}.app" "$TMP_DMG_DIR/"
+
+# 复制 README 到 DMG
+if [ -f "DMG_README.txt" ]; then
+    cp "DMG_README.txt" "$TMP_DMG_DIR/README.txt"
+    echo -e "${GREEN}✓ 已添加 README.txt 到 DMG${NC}"
+fi
 
 # 创建应用程序文件夹的符号链接
 ln -s /Applications "$TMP_DMG_DIR/Applications"

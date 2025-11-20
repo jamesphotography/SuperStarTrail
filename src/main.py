@@ -3,13 +3,28 @@ SuperStarTrail 主程序入口
 """
 
 import sys
+import os
 from pathlib import Path
+
+# CRITICAL FIX: Remove OpenCV_LOADER before any imports to prevent recursion detection
+# This must be the FIRST thing we do, before importing any other modules
+if hasattr(sys, 'OpenCV_LOADER'):
+    delattr(sys, 'OpenCV_LOADER')
+
+# Fix sys.path for PyInstaller
+if getattr(sys, 'frozen', False):
+    # Running in PyInstaller bundle
+    application_path = sys._MEIPASS
+else:
+    # Running in normal Python environment
+    application_path = str(Path(__file__).parent)
+    # Only add to sys.path if not frozen (PyInstaller handles this)
+    if application_path not in sys.path:
+        sys.path.insert(0, application_path)
+
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-
-# 添加 src 目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
 
 from ui.main_window import MainWindow
 from utils.logger import setup_logger

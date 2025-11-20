@@ -59,7 +59,7 @@ class AboutDialog(QDialog):
         layout.addWidget(name_label)
 
         # 版本信息
-        version_label = QLabel("<h3>版本 0.3.0</h3>")
+        version_label = QLabel("<h3>版本 0.5.0</h3>")
         version_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(version_label)
 
@@ -173,7 +173,7 @@ class PreferencesDialog(QDialog):
 
         # 版本信息
         version_label = QLabel(
-            "<i>彗星星轨 v0.3.0<br>"
+            "<i>彗星星轨 v0.5.0<br>"
             "设置保存在: ~/.superstartrail/settings.json</i>"
         )
         version_label.setStyleSheet("color: #888; font-size: 10px;")

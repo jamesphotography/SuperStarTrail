@@ -6,7 +6,7 @@ TRANSLATIONS = {
     # 简体中文
     "zh_CN": {
         # 窗口标题
-        "app_name": "超级星轨 SuperStarTrail",
+        "app_name": "彗星星轨",
         "preview": "预览",
 
         # 文件选择区域
@@ -78,10 +78,10 @@ TRANSLATIONS = {
 
         "menu_help": "帮助(&H)",
         "menu_guide": "使用指南(&G)",
-        "menu_about": "关于 超级星轨(&A)",
+        "menu_about": "关于 彗星星轨(&A)",
 
         # 控制按钮
-        "start": "🚀 开始",
+        "start": "✨ 开始合成",
         "stop": "⏹ 停止",
         "ready": "✓ 就绪",
         "processing": "⏳ 处理中 - 预计剩余: {time}",
@@ -237,7 +237,7 @@ TRANSLATIONS = {
     # English
     "en_US": {
         # Window titles
-        "app_name": "SuperStarTrail",
+        "app_name": "Comet Star Trail",
         "preview": "Preview",
 
         # File selection
@@ -309,10 +309,10 @@ TRANSLATIONS = {
 
         "menu_help": "&Help",
         "menu_guide": "User &Guide",
-        "menu_about": "&About SuperStarTrail",
+        "menu_about": "&About Comet Star Trail",
 
         # Control buttons
-        "start": "🚀 Start",
+        "start": "✨ Start Processing",
         "stop": "⏹ Stop",
         "ready": "✓ Ready",
         "processing": "⏳ Processing - ETA: {time}",
