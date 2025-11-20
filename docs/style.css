@@ -372,46 +372,194 @@ body {
     line-height: 1.6;
 }
 
-/* How It Works */
-.how-it-works {
+/* Videos Section */
+.videos {
     padding: 80px 20px;
     background: var(--dark-bg);
 }
 
-.steps {
+.videos-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
     gap: 40px;
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 
-.step {
+.video-item {
+    background: var(--card-bg);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.video-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(74, 144, 226, 0.3);
+}
+
+.video-wrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 比例 */
+    height: 0;
+    overflow: hidden;
+    background: #000;
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.video-caption {
+    padding: 25px;
     text-align: center;
 }
 
-.step-number {
-    width: 60px;
-    height: 60px;
+.video-caption h3 {
+    color: var(--accent-color);
+    margin-bottom: 10px;
+    font-size: 1.4rem;
+}
+
+.video-caption p {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* Installation Section */
+.installation {
+    padding: 80px 20px;
+    background: var(--darker-bg);
+}
+
+.install-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.install-image {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.install-screenshot {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    display: block;
+}
+
+.install-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.install-step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.install-step .step-number {
+    width: 50px;
+    height: 50px;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin: 0 auto 20px;
-}
-
-.step h3 {
     font-size: 1.3rem;
-    margin-bottom: 10px;
-    color: var(--accent-color);
+    font-weight: bold;
+    flex-shrink: 0;
 }
 
-.step p {
+.step-content h3 {
+    color: var(--accent-color);
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.step-content p {
     color: var(--text-muted);
+    line-height: 1.7;
+}
+
+/* Tutorial Section */
+.tutorial {
+    padding: 80px 20px;
+    background: var(--dark-bg);
+}
+
+.tutorial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 35px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.tutorial-item {
+    background: var(--card-bg);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    position: relative;
+}
+
+.tutorial-item:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 35px rgba(74, 144, 226, 0.35);
+}
+
+.tutorial-number {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    z-index: 1;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.tutorial-image {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    display: block;
+    background: var(--darker-bg);
+    border-bottom: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.tutorial-item h3 {
+    color: var(--accent-color);
+    margin: 20px 20px 12px;
+    font-size: 1.2rem;
+    line-height: 1.4;
+}
+
+.tutorial-item p {
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin: 0 20px 20px;
+    font-size: 0.95rem;
 }
 
 /* Screenshots */
@@ -658,6 +806,23 @@ footer {
 
     .examples-grid {
         grid-template-columns: 1fr;
+    }
+
+    .videos-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .install-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .tutorial-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tutorial-image {
+        height: 180px;
     }
 
     .download-card {

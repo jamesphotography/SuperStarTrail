@@ -24,8 +24,9 @@
             <ul class="nav-menu" id="navMenu">
                 <li><a href="#features">核心特性</a></li>
                 <li><a href="#examples">示例展示</a></li>
-                <li><a href="#how-it-works">使用流程</a></li>
-                <li><a href="#screenshots">应用截图</a></li>
+                <li><a href="#videos">视频展示</a></li>
+                <li><a href="#install">安装指南</a></li>
+                <li><a href="#tutorial">使用教程</a></li>
                 <li><a href="#download">立即下载</a></li>
                 <li><a href="#faq">常见问题</a></li>
             </ul>
@@ -114,30 +115,118 @@
         </div>
     </section>
 
-    <!-- How It Works -->
-    <section class="how-it-works" id="how-it-works">
+    <!-- Videos Section -->
+    <section class="videos" id="videos">
         <div class="container">
-            <h2>使用流程</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>选择目录</h3>
-                    <p>选择包含 RAW 文件的文件夹</p>
+            <h2>视频展示</h2>
+            <p class="section-desc">观看彗星星轨生成的星轨延时与银河延时视频</p>
+            <div class="videos-grid">
+                <div class="video-item">
+                    <div class="video-wrapper">
+                        <iframe
+                            src="https://www.youtube.com/embed/YOUR_STAR_TRAIL_VIDEO_ID"
+                            title="星轨延时视频"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    <div class="video-caption">
+                        <h3>星轨延时视频</h3>
+                        <p>展示星轨形成的完整过程，从开始到结束的渐进效果</p>
+                    </div>
                 </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>配置参数</h3>
-                    <p>选择堆栈模式、白平衡等参数</p>
+                <div class="video-item">
+                    <div class="video-wrapper">
+                        <iframe
+                            src="https://www.youtube.com/embed/YOUR_TIMELAPSE_VIDEO_ID"
+                            title="银河延时视频"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    <div class="video-caption">
+                        <h3>银河延时视频</h3>
+                        <p>普通延时模式，展示星空的自然运动轨迹</p>
+                    </div>
                 </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>一键合成</h3>
-                    <p>点击开始，实时预览处理过程</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Guide -->
+    <section class="installation" id="install">
+        <div class="container">
+            <h2>安装指南</h2>
+            <p class="section-desc">首次安装 macOS 应用时的权限设置步骤</p>
+            <div class="install-content">
+                <div class="install-image">
+                    <img src="iamges/install.png" alt="macOS 安装权限设置" class="install-screenshot">
                 </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>获得结果</h3>
-                    <p>自动生成星轨照片和延时视频</p>
+                <div class="install-steps">
+                    <div class="install-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>下载应用</h3>
+                            <p>从 GitHub、谷歌网盘或百度网盘下载 SuperStarTrail.dmg 文件</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>打开 DMG 文件</h3>
+                            <p>双击下载的 .dmg 文件，将应用拖到"应用程序"文件夹</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>允许安装</h3>
+                            <p>首次打开时，如果系统提示"无法打开"，请前往"系统偏好设置" → "安全性与隐私" → 点击"仍要打开"</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>开始使用</h3>
+                            <p>应用已签名和公证，可以安全使用。启动后即可开始处理星轨照片</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tutorial Section -->
+    <section class="tutorial" id="tutorial">
+        <div class="container">
+            <h2>使用教程</h2>
+            <p class="section-desc">跟随图文教程，快速掌握彗星星轨的使用方法</p>
+            <div class="tutorial-grid">
+                <div class="tutorial-item">
+                    <div class="tutorial-number">步骤 1</div>
+                    <img src="iamges/step-1.png" alt="选择文件夹" class="tutorial-image">
+                    <h3>选择包含 RAW 文件的文件夹</h3>
+                    <p>点击"选择目录"按钮，选择存放星空照片的文件夹。支持 NEF、CR2、ARW、RAF 等主流 RAW 格式。</p>
+                </div>
+                <div class="tutorial-item">
+                    <div class="tutorial-number">步骤 2</div>
+                    <img src="iamges/step-2.png" alt="设置参数" class="tutorial-image">
+                    <h3>配置处理参数</h3>
+                    <p>选择堆栈模式（星轨/彗星/平均/暗调），设置白平衡、彗星尾巴长度等参数。可以勾选生成延时视频选项。</p>
+                </div>
+                <div class="tutorial-item">
+                    <div class="tutorial-number">步骤 3</div>
+                    <img src="iamges/step-3.png" alt="实时预览" class="tutorial-image">
+                    <h3>实时预览处理过程</h3>
+                    <p>点击"开始处理"后，可以在预览窗口中实时查看星轨合成效果，了解处理进度。</p>
+                </div>
+                <div class="tutorial-item">
+                    <div class="tutorial-number">步骤 4</div>
+                    <img src="iamges/step-4.png" alt="获取结果" class="tutorial-image">
+                    <h3>获取最终成果</h3>
+                    <p>处理完成后，系统会自动打开输出文件夹。你将得到高质量的星轨照片和 4K 延时视频（如果勾选）。</p>
                 </div>
             </div>
         </div>
