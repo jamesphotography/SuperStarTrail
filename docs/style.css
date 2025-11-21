@@ -676,7 +676,7 @@ body {
 
 .app-card {
     background: var(--card-bg);
-    padding: 35px 25px;
+    padding: 30px 20px;
     border-radius: 15px;
     text-align: center;
     transition: all 0.3s ease;
@@ -692,15 +692,9 @@ body {
     border-color: var(--primary-color);
 }
 
-.app-icon {
-    font-size: 3.5rem;
-    margin-bottom: 15px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
-
 .app-card h3 {
     font-size: 1.5rem;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: var(--accent-color);
     font-weight: 700;
 }
@@ -708,14 +702,8 @@ body {
 .app-name-en {
     font-size: 0.95rem;
     color: var(--text-muted);
-    margin-bottom: 12px;
     font-style: italic;
-}
-
-.app-desc {
-    color: var(--text-muted);
-    line-height: 1.6;
-    font-size: 0.95rem;
+    margin: 0;
 }
 
 /* FAQ Section */
