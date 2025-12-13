@@ -2,7 +2,7 @@
 文件列表管理面板
 负责文件选择、输出目录选择、文件列表显示和文件排除功能
 """
-
+import os
 from pathlib import Path
 from typing import List, Callable, Optional
 from PyQt5.QtWidgets import (
@@ -100,13 +100,13 @@ class FileListPanel(QWidget):
         folder = QFileDialog.getExistingDirectory(self, self.tr.tr("select_directory"))
         if not folder:
             return
-
         # 查找所有支持的 RAW 文件
         folder_path = Path(folder)
         raw_extensions = {'.cr2', '.nef', '.arw', '.dng', '.orf', '.rw2', '.raf', '.crw', '.cr3'}
         files = sorted([
             f for f in folder_path.iterdir()
             if f.suffix.lower() in raw_extensions
+            and not f.name.startswith('.')
         ])
 
         if not files:
