@@ -51,6 +51,13 @@ TRANSLATIONS = {
         "default_output": "默认：原片目录/StarTrail/",
         "tooltip_output_dir": "选择保存星轨照片和视频的目录\n默认：原片目录/StarTrail/",
 
+        # 文件格式选择
+        "choose_format_title": "选择文件格式",
+        "choose_format_message": "检测到同名的 RAW 和 JPG 文件，请选择使用哪种格式：",
+        "use_raw": "使用 RAW",
+        "use_jpg": "使用 JPG",
+        "no_image_files": "所选文件夹中没有找到支持的图片文件（RAW 或 JPG）",
+
         # 文件排除功能
         "exclude_from_stacking": "❌ 排除出星轨合成",
         "include_in_stacking": "✅ 恢复到星轨合成",
@@ -281,6 +288,13 @@ TRANSLATIONS = {
         "output_to": "Output: {path}",
         "default_output": "Default: Source dir/StarTrail/",
         "tooltip_output_dir": "Select directory to save star trail photos and videos\nDefault: Source dir/StarTrail/",
+
+        # File format selection
+        "choose_format_title": "Choose File Format",
+        "choose_format_message": "Detected RAW and JPG files with same names. Please choose which format to use:",
+        "use_raw": "Use RAW",
+        "use_jpg": "Use JPG",
+        "no_image_files": "No supported image files found in the selected folder (RAW or JPG)",
 
         # File exclusion feature
         "exclude_from_stacking": "❌ Exclude from Stacking",

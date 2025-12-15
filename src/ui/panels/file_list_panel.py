@@ -100,20 +100,73 @@ class FileListPanel(QWidget):
         folder = QFileDialog.getExistingDirectory(self, self.tr.tr("select_directory"))
         if not folder:
             return
-        # 查找所有支持的 RAW 文件
+            
         folder_path = Path(folder)
+        
+        # 定义支持的扩展名
         raw_extensions = {'.cr2', '.nef', '.arw', '.dng', '.orf', '.rw2', '.raf', '.crw', '.cr3'}
-        files = sorted([
-            f for f in folder_path.iterdir()
-            if f.suffix.lower() in raw_extensions
-            and not f.name.startswith('.')
-        ])
+        jpg_extensions = {'.jpg', '.jpeg'}
+        
+        # 扫描文件夹中的文件（排除隐藏文件）
+        all_files = [f for f in folder_path.iterdir() if f.is_file() and not f.name.startswith('.')]
+        
+        # 分类 RAW 和 JPG 文件
+        raw_files = sorted([f for f in all_files if f.suffix.lower() in raw_extensions])
+        jpg_files = sorted([f for f in all_files if f.suffix.lower() in jpg_extensions])
+        
+        # 获取文件名前缀（不含扩展名）
+        raw_stems = {f.stem for f in raw_files}
+        jpg_stems = {f.stem for f in jpg_files}
+        
+        # 检查是否有同名对
+        common_stems = raw_stems & jpg_stems
+        
+        if common_stems:
+            # 有同名的 RAW+JPG 文件，让用户选择
+            from PyQt5.QtWidgets import QMessageBox
+            
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle(
+                self.tr.tr("choose_format_title") if hasattr(self.tr, 'tr') else "选择文件格式"
+            )
+            msg_box.setText(
+                self.tr.tr("choose_format_message") if hasattr(self.tr, 'tr') 
+                else f"检测到 {len(common_stems)} 对同名的 RAW 和 JPG 文件，请选择使用哪种格式："
+            )
+            msg_box.setIcon(QMessageBox.Question)
+            
+            btn_raw = msg_box.addButton(
+                self.tr.tr("use_raw") if hasattr(self.tr, 'tr') else "使用 RAW",
+                QMessageBox.AcceptRole
+            )
+            btn_jpg = msg_box.addButton(
+                self.tr.tr("use_jpg") if hasattr(self.tr, 'tr') else "使用 JPG",
+                QMessageBox.AcceptRole
+            )
+            
+            msg_box.exec_()
+            
+            if msg_box.clickedButton() == btn_raw:
+                files = raw_files
+            else:
+                files = jpg_files
+        else:
+            # 没有同名对，合并所有文件
+            if raw_files and jpg_files:
+                # 两种格式都有但没有同名，合并使用
+                files = sorted(raw_files + jpg_files, key=lambda x: x.name)
+            elif raw_files:
+                files = raw_files
+            elif jpg_files:
+                files = jpg_files
+            else:
+                files = []
 
         if not files:
             QMessageBox.warning(
                 self,
                 self.tr.tr("warning") if hasattr(self.tr, 'tr') else "警告",
-                self.tr.tr("no_raw_files") if hasattr(self.tr, 'tr') else "所选文件夹中没有找到 RAW 文件"
+                self.tr.tr("no_image_files") if hasattr(self.tr, 'tr') else "所选文件夹中没有找到支持的图片文件（RAW 或 JPG）"
             )
             return
 
