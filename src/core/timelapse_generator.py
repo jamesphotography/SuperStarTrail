@@ -66,8 +66,44 @@ class TimelapseGenerator:
 
         # 保存为 JPEG
         frame_path = self.temp_dir / f"frame_{self.frame_count:05d}.jpg"
-        cv2.imwrite(str(frame_path), cv2.cvtColor(img_resized, cv2.COLOR_RGB2BGR),
-                    [cv2.IMWRITE_JPEG_QUALITY, 90])
+        
+        # Windows 中文路径兼容：使用 imencode + tofile 替代 imwrite
+        import platform
+        import os
+        
+        try:
+            if platform.system() == "Windows":
+                # 转换为 BGR 并编码为 JPEG
+                img_bgr = cv2.cvtColor(img_resized, cv2.COLOR_RGB2BGR)
+                success, encoded = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                if success:
+                    encoded.tofile(str(frame_path))
+                else:
+                    logger.error(f"[帧 {self.frame_count}] cv2.imencode 失败")
+                    return
+            else:
+                result = cv2.imwrite(str(frame_path), cv2.cvtColor(img_resized, cv2.COLOR_RGB2BGR),
+                            [cv2.IMWRITE_JPEG_QUALITY, 90])
+                if not result:
+                    logger.error(f"[帧 {self.frame_count}] cv2.imwrite 失败: {frame_path}")
+                    return
+            
+            # 验证帧文件是否成功创建
+            if frame_path.exists():
+                frame_size = frame_path.stat().st_size
+                if frame_size == 0:
+                    logger.error(f"[帧 {self.frame_count}] 帧文件为 0 字节: {frame_path}")
+                    return
+                # 记录前 3 帧的详细信息，帮助诊断
+                if self.frame_count < 3:
+                    logger.info(f"[帧 {self.frame_count}] 保存成功: {frame_path.name} ({frame_size} 字节)")
+            else:
+                logger.error(f"[帧 {self.frame_count}] 帧文件不存在: {frame_path}")
+                return
+                
+        except Exception as e:
+            logger.error(f"[帧 {self.frame_count}] 保存帧时异常: {e}", exc_info=True)
+            return
 
         self.frame_paths.append(frame_path)
         self.frame_count += 1
@@ -148,29 +184,93 @@ class TimelapseGenerator:
         logger.info(f"总帧数: {self.frame_count}, 时长: {self.frame_count / self.fps:.2f} 秒")
 
         video = None
+        temp_video_path = None
+        
         try:
+            import tempfile
+            import shutil
+            import platform
+            
+            # Windows 上 OpenCV 无法处理中文路径，需要先写入临时文件
+            if platform.system() == "Windows":
+                # 创建临时文件（ASCII 路径）
+                temp_fd, temp_video_path = tempfile.mkstemp(suffix='.mp4')
+                import os
+                os.close(temp_fd)  # 关闭文件描述符，让 OpenCV 可以写入
+                video_path_for_opencv = temp_video_path
+                logger.info(f"Windows: 使用临时路径 {temp_video_path}")
+            else:
+                video_path_for_opencv = str(self.output_path)
+            
             # 使用 OpenCV 创建视频编码器
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # MP4 编码器
             video = cv2.VideoWriter(
-                str(self.output_path),
+                video_path_for_opencv,
                 fourcc,
                 self.fps,
                 self.resolution
             )
 
             if not video.isOpened():
+                logger.error(f"无法打开视频编码器, 路径: {video_path_for_opencv}")
+                logger.error(f"编码器: mp4v, FPS: {self.fps}, 分辨率: {self.resolution}")
                 raise RuntimeError("无法打开视频编码器")
+            
+            logger.info(f"视频编码器已打开: {video_path_for_opencv}")
 
             # 逐帧写入
+            frames_written = 0
             for i, frame_path in enumerate(self.frame_paths):
-                frame = cv2.imread(str(frame_path))
+                # Windows 中文路径兼容：使用 numpy 读取
+                if platform.system() == "Windows":
+                    # 使用 numpy.fromfile + cv2.imdecode 处理中文路径
+                    frame_data = np.fromfile(str(frame_path), dtype=np.uint8)
+                    frame = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
+                else:
+                    frame = cv2.imread(str(frame_path))
+                    
                 if frame is None:
                     logger.warning(f"无法读取帧: {frame_path}")
                     continue
+                    
                 video.write(frame)
+                frames_written += 1
 
                 if (i + 1) % 10 == 0:
                     logger.info(f"编码进度: {i + 1}/{self.frame_count} 帧")
+
+            # 释放视频资源（必须在移动文件前释放）
+            video.release()
+            video = None
+            
+            logger.info(f"成功写入 {frames_written}/{self.frame_count} 帧")
+            
+            # Windows: 将临时文件移动到最终位置
+            if platform.system() == "Windows" and temp_video_path:
+                import os
+                # 检查临时文件大小
+                temp_size = os.path.getsize(temp_video_path)
+                logger.info(f"临时视频文件大小: {temp_size} 字节")
+                
+                if temp_size == 0:
+                    logger.error("临时视频文件为 0 字节，编码可能失败")
+                    return False
+                
+                # 移动到最终位置
+                shutil.move(temp_video_path, str(self.output_path))
+                logger.info(f"视频已移动到: {self.output_path}")
+                temp_video_path = None  # 标记已移动，不需要清理
+            
+            # 检查最终文件
+            if self.output_path.exists():
+                final_size = self.output_path.stat().st_size
+                logger.info(f"最终视频文件大小: {final_size} 字节")
+                if final_size == 0:
+                    logger.error("最终视频文件为 0 字节")
+                    return False
+            else:
+                logger.error(f"视频文件不存在: {self.output_path}")
+                return False
 
             logger.info(f"视频生成成功: {self.output_path}")
 
@@ -189,6 +289,16 @@ class TimelapseGenerator:
             if video is not None:
                 video.release()
                 logger.debug("VideoWriter 资源已释放")
+            
+            # 清理临时视频文件（如果存在且未移动）
+            if temp_video_path:
+                try:
+                    import os
+                    if os.path.exists(temp_video_path):
+                        os.remove(temp_video_path)
+                        logger.debug(f"已清理临时视频文件: {temp_video_path}")
+                except Exception as e:
+                    logger.warning(f"清理临时视频文件失败: {e}")
 
     def cleanup_temp_files(self) -> None:
         """删除临时帧文件"""

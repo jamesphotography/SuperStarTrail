@@ -80,7 +80,7 @@ class ProcessThread(QThread):
     def run(self):
         """执行处理"""
         import time
-        from utils.logger import setup_logger
+        from utils.logger import setup_logger, enable_file_logging
 
         logger = setup_logger("ProcessThread")
 
@@ -97,6 +97,9 @@ class ProcessThread(QThread):
 
             # 创建输出目录
             output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 启用文件日志记录（保存到输出目录）
+            log_file_path = enable_file_logging(output_dir)
             logger.info(f"输出目录: {output_dir}")
 
             # 如果启用延时视频，生成输出路径
