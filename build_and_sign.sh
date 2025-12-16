@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # 配置
 APP_NAME="SuperStarTrail"
-VERSION="0.5.0"
+VERSION="0.5.1"
 BUNDLE_ID="com.jamesphotography.superstartrail"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 
