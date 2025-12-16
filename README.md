@@ -77,7 +77,7 @@
 
 ## 📧 联系与支持
 
-- 作者: James Photography
+- 作者: James Yu & Jordan Yu
 - Email: James@jamesphotography.com.au
 - 项目主页: [GitHub](https://github.com/jamesphotography/SuperStarTrail)
 
