@@ -13,7 +13,7 @@
 ### ✨ 核心特性
 
 #### 星轨合成
-- **原生 RAW 支持**: 支持所有主流相机的 RAW 格式（NEF, CR2, ARW, RAF, DNG 等）
+- **多格式支持**: 支持所有主流相机的 RAW 格式（NEF, CR2, ARW, RAF, DNG 等）及 JPEG 格式
 - **多种堆栈模式**:
   - Lighten（最大值）- 标准星轨模式
   - Comet（彗星模式）- 创建渐变尾迹效果，可调节尾巴长度
@@ -21,7 +21,6 @@
   - Darken（最小值）- 去除光污染
 - **实时预览**: 在合成过程中实时查看结果，带亮度自动拉伸
 - **专业调控**: RAW 参数调整（白平衡：相机、日光、自动）
-- **间隔填充**: 自动填充照片间隔，创造更平滑的星轨
 
 #### 延时视频
 - **星轨延时** ⭐（默认开启）: 展示星轨形成过程，从第一张到最后一张的变化
@@ -38,6 +37,8 @@
 
 ### 📸 功能演示
 
+🎬 **视频教程**: [YouTube 完整教程](https://www.youtube.com/watch?v=torSH5w1wH4)
+
 1. **选择照片** → 2. **配置参数** → 3. **一键合成** → 4. **获得结果**
 
 输出文件：
@@ -47,18 +48,24 @@
 
 ## 🚀 快速开始
 
-### macOS 安装（推荐）
+### macOS 安装
 
 1. 下载 `SuperStarTrail-0.5.0.dmg`
 2. 双击打开 DMG 文件
 3. 拖拽应用到 Applications 文件夹
 4. 首次运行：右键 → 打开（绕过 Gatekeeper）
 
+### Windows 安装
+
+1. 下载 `SuperStarTrail-0.5.0-Windows.zip`
+2. 解压到任意目录
+3. 双击 `SuperStarTrail.exe` 运行
+
 ### 开发环境
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/SuperStarTrail.git
+git clone https://github.com/jamesphotography/SuperStarTrail.git
 cd SuperStarTrail
 
 # 创建虚拟环境
@@ -80,7 +87,7 @@ python src/main.py
 1. **选择照片目录**
    - 点击"选择目录"按钮
    - 选择包含 RAW 文件的文件夹
-   - 支持的格式：NEF, CR2, ARW, DNG, ORF, RW2, RAF, CRW, CR3
+   - 支持的格式：NEF, CR2, ARW, DNG, ORF, RW2, RAF, CRW, CR3, **JPEG**
 
 2. **配置参数**
    - 堆栈模式：Lighten（星轨）或 Comet（彗星效果）
@@ -90,7 +97,6 @@ python src/main.py
 3. **选择功能**（默认全部开启）
    - ✅ 星轨延时：展示星轨形成过程
    - ✅ 银河延时：展示天空运动
-   - 间隔填充：可选，填充照片间隔
 
 4. **开始处理**
    - 点击"开始合成"
@@ -218,16 +224,21 @@ python patch_cv2.py  # 补丁虚拟环境中的 cv2
 - [LibRaw](https://www.libraw.org/) - RAW 图像处理库
 - [PyInstaller](https://pyinstaller.org/) - Python 打包工具
 
+## 👥 贡献者
+
+- **James Zhen Yu** - 项目创建者
+- **Jordan Yu** - 贡献者
+
 ## 📧 联系方式
 
 - 作者: James Photography
 - Email: James@jamesphotography.com.au
-- 项目主页: https://github.com/yourusername/SuperStarTrail
+- 项目主页: https://github.com/jamesphotography/SuperStarTrail
 
 ---
 
 **开发语言**: Python 3.12+
-**平台支持**: macOS (已测试), Windows, Linux
+**平台支持**: macOS ✅ | Windows ✅ 
 **状态**: ✅ 生产就绪
 
 Made with ❤️ for astrophotography enthusiasts
