@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <title>彗星星轨 SuperStarTrail - 一键生成星轨照片与延时视频</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <!-- 导航栏 -->
     <nav class="navbar">
@@ -41,19 +43,17 @@
                 <img src="logo.png" alt="SuperStarTrail Logo" class="logo">
                 <h1>彗星星轨</h1>
                 <p class="subtitle">一键生成星轨照片与延时视频</p>
-                <p class="tagline">专业的天文摄影后期工具，支持 RAW 格式，让星轨合成变得简单</p>
+                <p class="tagline">专业的天文摄影后期工具，支持 RAW 和 JPEG 格式，让星轨合成变得简单</p>
                 <div class="cta-buttons">
-                    <a href="https://github.com/jamesphotography/SuperStarTrail/releases/latest" class="btn btn-primary">
+                    <a href="https://github.com/jamesphotography/SuperStarTrail/releases/latest"
+                        class="btn btn-primary">
                         <span class="icon">⬇️</span> GitHub 下载
                     </a>
-                    <a href="https://drive.google.com/file/d/14UmpBr3V0V3HX3pzomio3Cp-xA5EBZz3/view?usp=sharing" class="btn btn-primary">
-                        <span class="icon">☁️</span> 谷歌网盘
-                    </a>
-                    <a href="https://pan.baidu.com/s/1LO6mPf_dtMzkhnLZKHcjHg?pwd=8874" class="btn btn-primary" title="提取码: 8874">
-                        <span class="icon">💾</span> 百度网盘
+                    <a href="#download" class="btn btn-secondary">
+                        <span class="icon">🚀</span> 获取 macOS / Windows 版
                     </a>
                 </div>
-                <p class="version-info">版本 0.5.0 · macOS 10.13+ · 免费开源</p>
+                <p class="version-info">版本 0.5.1 · macOS / Windows · 免费开源</p>
             </div>
         </div>
     </header>
@@ -65,8 +65,8 @@
             <div class="feature-grid">
                 <div class="feature-card">
                     <div class="feature-icon">📸</div>
-                    <h3>原生 RAW 支持</h3>
-                    <p>支持所有主流相机的 RAW 格式（NEF, CR2, ARW, RAF, DNG 等），保持最高图像质量</p>
+                    <h3>全格式支持</h3>
+                    <p>支持 RAW (NEF, CR2, ARW 等) 和 JPEG 格式。自动识别 RAW+JPG文件，灵活选择。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">⭐</div>
@@ -122,10 +122,7 @@
             <div class="videos-grid">
                 <div class="video-item">
                     <div class="video-wrapper">
-                        <iframe
-                            src="https://www.youtube.com/embed/Cgi0zqpBYUg"
-                            title="彗星星轨延时效果"
-                            frameborder="0"
+                        <iframe src="https://www.youtube.com/embed/Cgi0zqpBYUg" title="彗星星轨延时效果" frameborder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowfullscreen>
                         </iframe>
@@ -137,10 +134,7 @@
                 </div>
                 <div class="video-item">
                     <div class="video-wrapper">
-                        <iframe
-                            src="https://www.youtube.com/embed/YeZQH82P_dw"
-                            title="银河延时视频"
-                            frameborder="0"
+                        <iframe src="https://www.youtube.com/embed/YeZQH82P_dw" title="银河延时视频" frameborder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowfullscreen>
                         </iframe>
@@ -254,24 +248,48 @@
             <h2>立即下载</h2>
             <p class="section-desc">完全免费，开源软件</p>
             <div class="download-options">
+                <!-- macOS Card -->
                 <div class="download-card">
                     <h3>macOS 版本</h3>
-                    <p class="version">v0.5.0</p>
+                    <p class="version">v0.5.1</p>
                     <ul class="requirements">
                         <li>✓ macOS 10.13 或更高版本</li>
                         <li>✓ 推荐 8GB 内存以上</li>
-                        <li>✓ 已签名和公证</li>
-                        <li>✓ 文件大小: 157 MB</li>
+                        <li>✓ 已签名和公证 (Apple Notarized)</li>
                     </ul>
                     <div class="download-links">
-                        <a href="https://github.com/jamesphotography/SuperStarTrail/releases/latest" class="btn btn-primary btn-large">
+                        <a href="https://github.com/jamesphotography/SuperStarTrail/releases/latest"
+                            class="btn btn-primary btn-large">
                             <span class="icon">⬇️</span> GitHub 下载
                         </a>
-                        <a href="https://drive.google.com/file/d/14UmpBr3V0V3HX3pzomio3Cp-xA5EBZz3/view?usp=sharing" class="btn btn-secondary btn-large">
+                        <a href="https://drive.google.com/file/d/1o3VbJcYn_fwQREUgpon1KYI3a03Sz14C/view?usp=sharing"
+                            class="btn btn-secondary btn-large">
                             <span class="icon">☁️</span> 谷歌网盘
                         </a>
-                        <a href="https://pan.baidu.com/s/1LO6mPf_dtMzkhnLZKHcjHg?pwd=8874" class="btn btn-secondary btn-large">
-                            <span class="icon">💾</span> 百度网盘 (提取码: 8874)
+                        <a href="https://pan.baidu.com/s/15wFSO14DQC8dTDhndumTTg?pwd=4a1t"
+                            class="btn btn-secondary btn-large">
+                            <span class="icon">💾</span> 百度网盘 (提取码: 4a1t)
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Windows Card -->
+                <div class="download-card">
+                    <h3>Windows 版本</h3>
+                    <p class="version">v0.5.1</p>
+                    <ul class="requirements">
+                        <li>✓ Windows 10/11 64位</li>
+                        <li>✓ 推荐 8GB 内存以上</li>
+                        <li>✓ 支持中文路径 (已修复问题)</li>
+                    </ul>
+                    <div class="download-links">
+                        <a href="https://drive.google.com/file/d/18GCh13FAIMZ6LMGpDcvG2QhZv7VNRBrE/view?usp=sharing"
+                            class="btn btn-primary btn-large">
+                            <span class="icon">☁️</span> 谷歌网盘
+                        </a>
+                        <a href="https://pan.baidu.com/s/1aJBsGZyRoM7wboDbI-Xf_A?pwd=t48u"
+                            class="btn btn-secondary btn-large">
+                            <span class="icon">💾</span> 百度网盘 (提取码: t48u)
                         </a>
                     </div>
                 </div>
@@ -351,7 +369,8 @@
                     <ul>
                         <li><a href="https://github.com/jamesphotography/SuperStarTrail">GitHub</a></li>
                         <li><a href="https://github.com/jamesphotography/SuperStarTrail/issues">问题反馈</a></li>
-                        <li><a href="https://github.com/jamesphotography/SuperStarTrail/blob/master/README.md">文档</a></li>
+                        <li><a href="https://github.com/jamesphotography/SuperStarTrail/blob/master/README.md">文档</a>
+                        </li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -401,4 +420,5 @@
         });
     </script>
 </body>
+
 </html>
