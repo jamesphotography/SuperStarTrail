@@ -50,7 +50,6 @@ class ProcessThread(QThread):
         file_paths: List[Path],
         stack_mode: StackMode,
         raw_params: dict,
-        enable_alignment: bool = False,
         enable_gap_filling: bool = False,
         gap_fill_method: str = "morphological",
         gap_size: int = 3,
@@ -65,7 +64,6 @@ class ProcessThread(QThread):
         self.file_paths = file_paths
         self.stack_mode = stack_mode
         self.raw_params = raw_params
-        self.enable_alignment = enable_alignment
         self.enable_gap_filling = enable_gap_filling
         self.gap_fill_method = gap_fill_method
         self.gap_size = gap_size
@@ -132,7 +130,6 @@ class ProcessThread(QThread):
 
             engine = StackingEngine(
                 self.stack_mode,
-                enable_alignment=self.enable_alignment,
                 enable_gap_filling=self.enable_gap_filling,
                 gap_fill_method=self.gap_fill_method,
                 gap_size=self.gap_size,
@@ -147,11 +144,6 @@ class ProcessThread(QThread):
                 logger.info(f"彗星模式: 衰减因子 = {self.comet_fade_factor}")
 
             # 检查功能是否因依赖缺失而被降级
-            if self.enable_alignment and not engine.enable_alignment:
-                warning_msg = "⚠️  图像对齐功能不可用（OpenCV 未安装），已自动禁用"
-                self.log_message.emit(warning_msg)
-                logger.warning(warning_msg)
-
             if self.enable_gap_filling and not engine.enable_gap_filling:
                 warning_msg = "⚠️  间隔填充功能不可用（scipy 未安装），已自动禁用"
                 self.log_message.emit(warning_msg)
@@ -166,7 +158,6 @@ class ProcessThread(QThread):
             self.log_message.emit(f"文件数量: {total}")
             self.log_message.emit(f"堆栈模式: {mode_name}")
             self.log_message.emit(f"白平衡: {self.raw_params.get('white_balance', 'camera')}")
-            self.log_message.emit(f"图像对齐: {'启用' if self.enable_alignment else '禁用'}")
             self.log_message.emit(f"间隔填充: {'启用' if self.enable_gap_filling else '禁用'}")
             if self.enable_gap_filling:
                 self.log_message.emit(f"填充方法: {self.gap_fill_method}, 间隔大小: {self.gap_size}")
@@ -179,7 +170,6 @@ class ProcessThread(QThread):
             logger.info(f"文件数量: {total}")
             logger.info(f"堆栈模式: {mode_name}")
             logger.info(f"白平衡: {self.raw_params.get('white_balance', 'camera')}")
-            logger.info(f"图像对齐: {'启用' if self.enable_alignment else '禁用'}")
             logger.info(f"间隔填充: {'启用' if self.enable_gap_filling else '禁用'}")
             if self.enable_gap_filling:
                 logger.info(f"填充方法: {self.gap_fill_method}, 间隔大小: {self.gap_size}")
@@ -526,7 +516,6 @@ class MainWindow(QMainWindow):
             files_to_process,
             self.params_panel.get_stack_mode(),
             self.params_panel.get_raw_params(),
-            enable_alignment=False,
             enable_gap_filling=self.params_panel.is_gap_filling_enabled(),
             gap_fill_method=gap_fill_method,
             gap_size=gap_size,

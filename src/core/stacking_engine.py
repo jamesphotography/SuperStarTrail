@@ -61,7 +61,6 @@ class StackingEngine:
     def __init__(
         self,
         mode: StackMode = StackMode.LIGHTEN,
-        enable_alignment: bool = False,
         enable_gap_filling: bool = False,
         gap_fill_method: str = "morphological",
         gap_size: int = 3,
@@ -74,7 +73,6 @@ class StackingEngine:
 
         Args:
             mode: 堆栈模式
-            enable_alignment: 是否启用图像对齐（修正相机抖动）
             enable_gap_filling: 是否启用间隔填充（消除星轨间隔）
             gap_fill_method: 填充方法 ('linear', 'morphological', 'motion_blur')
             gap_size: 要填充的最大间隔大小（像素）
@@ -83,11 +81,8 @@ class StackingEngine:
         """
         self.mode = mode
         self.result: Optional[np.ndarray] = None
-        self.reference: Optional[np.ndarray] = None  # 参考图像用于对齐
         self.count = 0
         self.comet_fade_factor = 0.98  # 彗星模式的衰减因子
-        self.enable_alignment = enable_alignment
-        self.aligner = None
         self.enable_gap_filling = enable_gap_filling
         self.gap_filler = None
         self.gap_fill_method = gap_fill_method
@@ -103,16 +98,6 @@ class StackingEngine:
                 fps=video_fps,
                 resolution=(3840, 2160)
             )
-
-        # 如果启用对齐，初始化对齐器
-        if enable_alignment:
-            try:
-                from .image_aligner import ImageAligner
-                self.aligner = ImageAligner(method="orb")  # 使用快速的 ORB
-            except ImportError as e:
-                logger.warning(f"图像对齐功能不可用: OpenCV 未安装 ({e})")
-                self.enable_alignment = False
-                self.aligner = None
 
         # 如果启用间隔填充，初始化填充器
         if enable_gap_filling:
@@ -144,22 +129,12 @@ class StackingEngine:
         Returns:
             当前堆栈结果的副本
         """
-        # 如果启用对齐且不是第一张图像
-        if self.enable_alignment and self.reference is not None:
-            if self.aligner is not None:
-                # 对齐图像
-                image, success = self.aligner.align(image, self.reference, max_shift=50)
-                if not success:
-                    logger.warning(f"第 {self.count + 1} 张图像对齐失败，使用原图")
-
         # 转换为 float32 以避免溢出
         img_float = image.astype(np.float32)
 
         if self.result is None:
-            # 第一张图像，直接作为初始结果和参考
+            # 第一张图像，直接作为初始结果
             self.result = img_float.copy()
-            if self.enable_alignment:
-                self.reference = image.copy()  # 保存为参考图像
         else:
             # 根据模式进行堆栈
             if self.mode == StackMode.LIGHTEN:
