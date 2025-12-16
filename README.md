@@ -2,7 +2,7 @@
 
 **一键生成星轨照片与延时视频**
 
-![Version](https://img.shields.io/badge/version-0.5.0-blue)
+![Version](https://img.shields.io/badge/version-0.5.1-blue)
 ![Python](https://img.shields.io/badge/python-3.12+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -50,14 +50,14 @@
 
 ### macOS 安装
 
-1. 下载 `SuperStarTrail-0.5.0.dmg`
+1. 下载 `SuperStarTrail-0.5.1.dmg`
 2. 双击打开 DMG 文件
 3. 拖拽应用到 Applications 文件夹
 4. 首次运行：右键 → 打开（绕过 Gatekeeper）
 
 ### Windows 安装
 
-1. 下载 `SuperStarTrail-0.5.0-Windows.zip`
+1. 下载 `SuperStarTrail-0.5.1-Windows.zip`
 2. 解压到任意目录
 3. 双击 `SuperStarTrail.exe` 运行
 
@@ -149,7 +149,7 @@ MilkyWayTimelapse_开始-结束_白平衡_帧率.mp4
 
 # 输出文件
 dist/SuperStarTrail.app
-dist/SuperStarTrail-0.5.0.dmg
+dist/SuperStarTrail-0.5.1.dmg
 ```
 
 详见 [PACKAGING_GUIDE.md](PACKAGING_GUIDE.md)
@@ -170,6 +170,16 @@ python patch_cv2.py  # 补丁虚拟环境中的 cv2
 ```
 
 ## 📝 更新日志
+
+### v0.5.1 (2025-12-15)
+
+#### 新增功能
+- ✨ 支持 JPEG 格式图片合成
+- 🖥️ Windows 版本正式发布
+
+#### 改进
+- 📹 添加 YouTube 视频教程
+- 📚 完善使用文档
 
 ### v0.5.0 (2025-01-19)
 
