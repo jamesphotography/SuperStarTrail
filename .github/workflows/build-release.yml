@@ -1,6 +1,5 @@
 name: Build and Release SuperStarTrail
 
-# 触发条件：推送 vX.Y.Z 标签，或手动触发
 on:
   push:
     tags:
@@ -8,12 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 0.6.0)"
+        description: "Release version (e.g. 1.0.1)"
         required: true
-
-# ─────────────────────────────────────────────────────────────
-# 公共工具函数：解析版本号（在各 job 中重复使用）
-# ─────────────────────────────────────────────────────────────
 
 jobs:
   # ══════════════════════════════════════════════════════════
@@ -31,11 +26,9 @@ jobs:
       asset:   ${{ steps.package.outputs.asset }}
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Python ────────────────────────────────────────
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -43,7 +36,6 @@ jobs:
           cache: "pip"
           cache-dependency-path: requirements-lock.txt
 
-      # ── 3. 解析版本元数据 ─────────────────────────────────
       - name: Resolve release metadata
         id: meta
         shell: pwsh
@@ -64,7 +56,6 @@ jobs:
           "tag=$tag"         >> $env:GITHUB_OUTPUT
           Write-Host "Building version=$version  tag=$tag"
 
-      # ── 4. 校验代码内版本号 ───────────────────────────────
       - name: Validate APP_VERSION in source
         shell: pwsh
         env:
@@ -76,32 +67,27 @@ jobs:
           }
           Write-Host "APP_VERSION check passed: $actual"
 
-      # ── 5. 安装依赖 ───────────────────────────────────────
       - name: Install Python dependencies
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-lock.txt pyinstaller
+          pip install -r requirements-lock.txt pyinstaller pytest
 
-      # ── 6. 单元测试（跳过 GUI/display 相关测试）────────────
       - name: Run unit tests
         shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          pip install pytest
           python -m pytest -q `
             tests/test_file_naming.py `
             tests/test_settings.py `
             --tb=short
 
-      # ── 7. PyInstaller 打包 ──────────────────────────────
       - name: Build Windows executable
         shell: pwsh
         run: |
           pyinstaller SuperStarTrail-Windows.spec --clean --noconfirm
 
-      # ── 8. 验证产物存在 ──────────────────────────────────
       - name: Verify build output
         shell: pwsh
         run: |
@@ -113,7 +99,6 @@ jobs:
           $size = (Get-Item $exe).Length / 1MB
           Write-Host "Build OK: $exe  ($([math]::Round($size,1)) MB)"
 
-      # ── 9. 打包成 ZIP ────────────────────────────────────
       - name: Package release ZIP
         id: package
         shell: pwsh
@@ -122,7 +107,6 @@ jobs:
         run: |
           $name = "SuperStarTrail-v$env:VERSION-win64.zip"
           $dest = "dist\$name"
-          # 将 exe 和 README 一起打包
           $files = @("dist\SuperStarTrail.exe")
           if (Test-Path "DMG_README.txt") { $files += "DMG_README.txt" }
           Compress-Archive -Path $files -DestinationPath $dest -Force
@@ -130,7 +114,6 @@ jobs:
           Write-Host "ZIP created: $dest  ($([math]::Round($size,1)) MB)"
           "asset=$dest" >> $env:GITHUB_OUTPUT
 
-      # ── 10. 上传 Artifact ─────────────────────────────────
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
@@ -140,10 +123,10 @@ jobs:
           retention-days: 7
 
   # ══════════════════════════════════════════════════════════
-  # Job 2 – macOS arm64（签名/公证后续补充）
+  # Job 2 – macOS arm64（签名/公证后续补充，当前跳过）
   # ══════════════════════════════════════════════════════════
   build-macos:
-    name: "🍎 Build macOS arm64"
+    name: "🍎 Build macOS arm64 (unsigned)"
     runs-on: macos-14
     permissions:
       contents: read
@@ -212,44 +195,10 @@ jobs:
         run: |
           pyinstaller SuperStarTrail.spec --clean --noconfirm
 
-      # ── 签名（可选：仅当 secret 存在时执行）────────────────
-      - name: Import signing certificate
-        if: ${{ secrets.MACOS_CERTIFICATE != '' }}
-        env:
-          MACOS_CERTIFICATE:     ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-        run: |
-          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
-          KEYCHAIN_PWD=$(openssl rand -hex 16)
-          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
-          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
-          security import "$RUNNER_TEMP/certificate.p12" \
-            -k "$KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
-          echo "KEYCHAIN_PWD=$KEYCHAIN_PWD"   >> "$GITHUB_ENV"
-
-      - name: Sign application
-        if: ${{ secrets.MACOS_CERTIFICATE != '' }}
-        env:
-          DEVELOPER_ID: ${{ secrets.MACOS_DEVELOPER_ID }}
-        run: |
-          APP="dist/SuperStarTrail.app"
-          find "$APP/Contents" -type f \( -name "*.dylib" -o -name "*.so" -o -perm -111 \) -print0 | \
-            xargs -0 -I {} codesign --force --sign "$DEVELOPER_ID" --timestamp --options runtime "{}"
-          codesign --force --sign "$DEVELOPER_ID" \
-            --timestamp --options runtime \
-            --entitlements entitlements.plist "$APP"
-          codesign --verify --deep --strict --verbose=2 "$APP"
-
-      - name: Create DMG
+      - name: Create DMG (unsigned)
         id: package
         env:
-          VERSION:      ${{ steps.meta.outputs.version }}
-          DEVELOPER_ID: ${{ secrets.MACOS_DEVELOPER_ID }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           APP="dist/SuperStarTrail.app"
           DMG_NAME="SuperStarTrail-v${VERSION}-arm64.dmg"
@@ -272,33 +221,7 @@ jobs:
             "$STAGING"
 
           rm -rf "$STAGING"
-
-          # 仅当有签名 secret 时才签名 DMG
-          if [ -n "$DEVELOPER_ID" ]; then
-            codesign --force --sign "$DEVELOPER_ID" --timestamp "dist/${DMG_NAME}"
-          fi
-
           echo "asset=dist/${DMG_NAME}" >> "$GITHUB_OUTPUT"
-
-      # ── 公证（可选：仅当 secret 存在时执行）────────────────
-      - name: Notarize and staple DMG
-        if: ${{ secrets.APPLE_ID != '' }}
-        env:
-          APPLE_ID:          ${{ secrets.APPLE_ID }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          TEAM_ID:           ${{ secrets.MACOS_TEAM_ID }}
-          DMG_PATH:          ${{ steps.package.outputs.asset }}
-        run: |
-          OUTPUT=$(xcrun notarytool submit "$DMG_PATH" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "$TEAM_ID" \
-            --wait --output-format json 2>&1)
-          echo "$OUTPUT"
-          echo "$OUTPUT" | jq -e '.status == "Accepted"' \
-            || { echo "Notarization failed." >&2; exit 1; }
-          xcrun stapler staple   "$DMG_PATH"
-          xcrun stapler validate "$DMG_PATH"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -308,13 +231,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Clean up keychain
-        if: always()
-        run: |
-          [ -n "${KEYCHAIN_PATH:-}" ] && security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
-
   # ══════════════════════════════════════════════════════════
-  # Job 3 – 创建 GitHub Release（等待所有构建完成）
+  # Job 3 – 创建 GitHub Release
   # ══════════════════════════════════════════════════════════
   release:
     name: "🚀 Create GitHub Release"
@@ -344,16 +262,13 @@ jobs:
           [ -z "$RAW" ] && { echo "Release version is required." >&2; exit 1; }
           VERSION="${RAW#v}"
           TAG="v$VERSION"
-          echo "tag=$TAG"                      >> "$GITHUB_OUTPUT"
-          echo "name=SuperStarTrail $TAG"      >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"                 >> "$GITHUB_OUTPUT"
+          echo "name=SuperStarTrail $TAG" >> "$GITHUB_OUTPUT"
 
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: release_assets
-
-      - name: List collected assets
-        run: find release_assets -type f | sort
 
       - name: Flatten assets into one directory
         run: |
@@ -373,16 +288,12 @@ jobs:
           body: |
             ## SuperStarTrail ${{ steps.meta.outputs.tag }}
 
-            ### 下载
+            ### 下载 / Downloads
 
-            | 平台 | 文件 |
-            |------|------|
-            | 🪟 Windows x64 | `SuperStarTrail-${{ steps.meta.outputs.tag }}-win64.zip` |
-            | 🍎 macOS arm64 | `SuperStarTrail-${{ steps.meta.outputs.tag }}-arm64.dmg` |
-
-            ### 安装说明
-            - **Windows**：解压 ZIP，直接运行 `SuperStarTrail.exe`
-            - **macOS**：打开 DMG，将应用拖入 Applications 文件夹
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | 🪟 Windows x64 | `SuperStarTrail-${{ steps.meta.outputs.tag }}-win64.zip` | 解压后直接运行 exe |
+            | 🍎 macOS arm64 | `SuperStarTrail-${{ steps.meta.outputs.tag }}-arm64.dmg` | 拖入 Applications 文件夹 |
 
             ---
             Built automatically by GitHub Actions.
