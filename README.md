@@ -33,21 +33,14 @@
 #### 用户体验
 - **现代化界面**: 美观的深色模式界面，完全支持中文
 - **日志记录**: 自动保存详细的操作日志，方便回溯
-- **MacOS 优化**: 经过 Apple 公证，安装运行无障碍
+- **跨平台使用**: 当前 CI 发布 Windows 构建，macOS 请本地自行打包
 
 ## 🚀 下载与安装
 
-### macOS 用户 (推荐)
-
-1. 在 [Releases](https://github.com/jamesphotography/SuperStarTrail/releases) 页面下载 `SuperStarTrail-0.5.1.dmg`
-2. 双击打开 DMG 文件
-3. 将图标拖入 Applications 文件夹即可
-4. **无需额外设置**: 软件已通过 Apple 签名和公证，可直接打开运行
-
 ### Windows 用户
 
-1. 下载 Windows 版本安装包 (如有)
-2. 直接运行安装程序
+1. 在 [Releases](https://github.com/jamesphotography/SuperStarTrail/releases) 页面下载 `SuperStarTrail-v1.0.1-win64.zip`
+2. 解压后直接运行 `SuperStarTrail.exe`
 
 ## 📖 使用指南
 
@@ -68,7 +61,6 @@
 - ✨ **JPEG 格式支持**: 全面支持 .jpg/.jpeg 格式，支持 RAW+JPG 智能筛选
 - 🪟 **Windows 修复**: 彻底解决了 Windows 中文路径下延时视频 0 字节的问题
 - 📝 **日志系统**: 新增自动保存日志文件功能
-- 🔒 **安全增强**: macOS 版本已完成签名和公证
 
 ### v0.5.0
 - ✨ 完成后自动打开输出目录

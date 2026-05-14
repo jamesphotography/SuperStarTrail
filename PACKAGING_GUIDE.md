@@ -35,16 +35,16 @@
 
 ```bash
 # 你的 Apple ID
-export APPLE_ID="James@jamesphotography.com.au"
+export APPLE_ID="your-apple-id@example.com"
 
 # App-specific password（从 appleid.apple.com 生成）
-export APP_SPECIFIC_PASSWORD="iocf-bcmw-xxgc-kkvp"
+export APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 
 # Team ID
-export TEAM_ID="JWR6FDB52H"
+export TEAM_ID="YOURTEAMID"
 
 # 签名身份
-export SIGNING_IDENTITY="Developer ID Application: James Zhen Yu (JWR6FDB52H)"
+export SIGNING_IDENTITY="Developer ID Application: Your Name (YOURTEAMID)"
 ```
 
 **步骤 2: 运行打包脚本**
@@ -175,7 +175,7 @@ spctl -a -vv dist/SuperStarTrail.app
 ```bash
 # 深度签名
 codesign --force --deep --verify --verbose \
-  --sign "Developer ID Application: James Zhen Yu (JWR6FDB52H)" \
+  --sign "Developer ID Application: Your Name (YOURTEAMID)" \
   --options runtime \
   --timestamp \
   dist/SuperStarTrail.app
@@ -189,9 +189,9 @@ ditto -c -k --keepParent dist/SuperStarTrail.app SuperStarTrail.zip
 
 # 2. 上传公证
 xcrun notarytool submit SuperStarTrail.zip \
-  --apple-id "James@jamesphotography.com.au" \
-  --password "iocf-bcmw-xxgc-kkvp" \
-  --team-id "JWR6FDB52H" \
+  --apple-id "your-apple-id@example.com" \
+  --password "xxxx-xxxx-xxxx-xxxx" \
+  --team-id "YOURTEAMID" \
   --wait
 
 # 3. 装订票据
@@ -251,10 +251,10 @@ python src/main.py
 
 ```bash
 # 设置环境变量
-export SIGNING_IDENTITY="Developer ID Application: James Zhen Yu (JWR6FDB52H)"
-export APPLE_ID="James@jamesphotography.com.au"
-export APP_SPECIFIC_PASSWORD="iocf-bcmw-xxgc-kkvp"
-export TEAM_ID="JWR6FDB52H"
+export SIGNING_IDENTITY="Developer ID Application: Your Name (YOURTEAMID)"
+export APPLE_ID="your-apple-id@example.com"
+export APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+export TEAM_ID="YOURTEAMID"
 
 # 运行打包
 ./build_and_sign.sh
