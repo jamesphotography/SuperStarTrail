@@ -130,6 +130,15 @@ jobs:
     permissions:
       contents: read
 
+    # 把 secrets 映射为 job-level 环境变量，供 step-level if 条件检测
+    env:
+      APPLE_CERT_BASE64:   ${{ secrets.APPLE_CERT_BASE64 }}
+      APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+      SIGNING_IDENTITY:    ${{ secrets.SIGNING_IDENTITY }}
+      APPLE_ID:            ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD:  ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID:       ${{ secrets.APPLE_TEAM_ID }}
+
     outputs:
       version: ${{ steps.meta.outputs.version }}
       tag:     ${{ steps.meta.outputs.tag }}
@@ -209,7 +218,7 @@ jobs:
       # SIGNING_IDENTITY      : 例如 "Developer ID Application: Your Name (TEAMID)"
       # ─────────────────────────────────────────────────────────────────────────
       - name: Import signing certificate
-        if: ${{ secrets.APPLE_CERT_BASE64 != '' }}
+        if: ${{ env.APPLE_CERT_BASE64 != '' }}
         env:
           APPLE_CERT_BASE64:   ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -230,7 +239,7 @@ jobs:
           echo "Certificate imported successfully"
 
       - name: Code sign .app bundle
-        if: ${{ secrets.SIGNING_IDENTITY != '' }}
+        if: ${{ env.SIGNING_IDENTITY != '' }}
         env:
           SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
         run: |
@@ -287,7 +296,7 @@ jobs:
       # APPLE_TEAM_ID      : 10 位 Team ID
       # ─────────────────────────────────────────────────────────────────────────
       - name: Notarize and staple DMG
-        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_APP_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+        if: ${{ env.APPLE_ID != '' && env.APPLE_APP_PASSWORD != '' && env.APPLE_TEAM_ID != '' }}
         env:
           APPLE_ID:           ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
