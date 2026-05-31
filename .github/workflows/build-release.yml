@@ -132,12 +132,12 @@ jobs:
 
     # 把 secrets 映射为 job-level 环境变量，供 step-level if 条件检测
     env:
-      APPLE_CERT_BASE64:   ${{ secrets.APPLE_CERT_BASE64 }}
-      APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-      SIGNING_IDENTITY:    ${{ secrets.SIGNING_IDENTITY }}
+      APPLE_CERT_BASE64:   ${{ secrets.MACOS_CERTIFICATE }}
+      APPLE_CERT_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      SIGNING_IDENTITY:    ${{ secrets.MACOS_DEVELOPER_ID }}
       APPLE_ID:            ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD:  ${{ secrets.APPLE_APP_PASSWORD }}
-      APPLE_TEAM_ID:       ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_TEAM_ID:       ${{ secrets.MACOS_TEAM_ID }}
 
     outputs:
       version: ${{ steps.meta.outputs.version }}
@@ -220,8 +220,8 @@ jobs:
       - name: Import signing certificate
         if: ${{ env.APPLE_CERT_BASE64 != '' }}
         env:
-          APPLE_CERT_BASE64:   ${{ secrets.APPLE_CERT_BASE64 }}
-          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_CERT_BASE64:   ${{ secrets.MACOS_CERTIFICATE }}
+          APPLE_CERT_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
           KEYCHAIN_PWD="$(openssl rand -hex 16)"
@@ -241,7 +241,7 @@ jobs:
       - name: Code sign .app bundle
         if: ${{ env.SIGNING_IDENTITY != '' }}
         env:
-          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
+          SIGNING_IDENTITY: ${{ secrets.MACOS_DEVELOPER_ID }}
         run: |
           # 先逐一签名所有 .dylib / .so / 可执行文件
           find dist/SuperStarTrail.app/Contents -type f \
@@ -300,7 +300,7 @@ jobs:
         env:
           APPLE_ID:           ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          APPLE_TEAM_ID:      ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_TEAM_ID:      ${{ secrets.MACOS_TEAM_ID }}
           VERSION:            ${{ steps.meta.outputs.version }}
         run: |
           DMG_NAME="SuperStarTrail-v${VERSION}-arm64.dmg"
