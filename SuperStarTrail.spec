@@ -3,7 +3,11 @@
 block_cipher = None
 
 import sys
+from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
+
+sys.path.insert(0, str(Path("src").resolve()))
+from utils.settings import APP_VERSION
 
 # Collect all cv2 data files and binaries to avoid import issues
 cv2_datas, cv2_binaries, cv2_hiddenimports = collect_all('cv2')
@@ -38,7 +42,6 @@ a = Analysis(
         'tifffile',
         'imageio',
         'imageio.core',
-        'imageio_ffmpeg',
         'numba',
         'numba.core',
         'numba.typed',
@@ -78,6 +81,12 @@ a = Analysis(
         'tensorflow',
         'matplotlib',
         'pandas',
+        'PyQt6',
+        'PyQt6.QtCore',
+        'PyQt6.QtGui',
+        'PyQt6.QtWidgets',
+        'PySide2',
+        'PySide6',
         'astropy',  # 仅用于预览拉伸增强，已有 fallback，不打包进二进制
     ],
     win_no_prefer_redirects=False,
@@ -122,14 +131,14 @@ app = BUNDLE(
     name='SuperStarTrail.app',
     icon='logo.icns',
     bundle_identifier='com.jamesphotography.superstartrail',
-    version='0.6.0-RC3',
+    version=APP_VERSION,
     info_plist={
         'CFBundleName': '彗星星轨',
         'CFBundleDisplayName': '彗星星轨',
         'CFBundleGetInfoString': '彗星星轨 - 一键生成星轨照片与延时视频',
         'CFBundleIdentifier': 'com.jamesphotography.superstartrail',
-        'CFBundleVersion': '0.6.0-RC3',
-        'CFBundleShortVersionString': '0.6.0-RC3',
+        'CFBundleVersion': APP_VERSION,
+        'CFBundleShortVersionString': APP_VERSION,
         'NSHumanReadableCopyright': 'Copyright © 2024-2025 James Photography',
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '10.13.0',

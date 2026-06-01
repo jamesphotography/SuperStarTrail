@@ -38,6 +38,7 @@ def cmd_info(args):
     import rawpy
     from PIL import Image
     from PIL.ExifTags import TAGS
+    from core.raw_processor import RawProcessor
 
     file_path = Path(args.file)
     if not file_path.exists():
@@ -85,6 +86,9 @@ def cmd_info(args):
             except Exception:
                 print("  (EXIF 读取失败，仅显示分辨率)")
     except Exception as e:
+        if RawProcessor.is_unsupported_raw_exception(e):
+            print(f"错误: {file_path.name}: {RawProcessor.UNSUPPORTED_COMPRESSED_RAW_MESSAGE}")
+            return 1
         print(f"错误: 无法读取文件 - {e}")
         return 1
 
@@ -113,11 +117,7 @@ def cmd_stack(args):
     raw_exts = RawProcessor.SUPPORTED_RAW_FORMATS
     jpg_exts = {".jpg", ".jpeg"}
 
-    candidate_files = [
-        f for f in source_dir.iterdir()
-        if f.is_file() and not f.name.startswith(".")
-        and processor.is_supported_file(f)
-    ]
+    candidate_files = RawProcessor.scan_directory(source_dir)
     raw_files = sorted([f for f in candidate_files if f.suffix.lower() in raw_exts])
     jpg_files = sorted([f for f in candidate_files if f.suffix.lower() in jpg_exts])
     other_files = sorted([
@@ -184,17 +184,11 @@ def cmd_stack(args):
             fps=args.fps,
         )
 
-    # 加载天空蒙版（如有）
+    # 蒙版功能已临时禁用
     sky_mask = None
     _first = None
     if args.mask:
-        from core.mask_processor import MaskProcessor
-        from pathlib import Path as _Path
-        mask_path = _Path(args.mask)
-        # 读第一张图获取目标分辨率
-        _first = processor.process(all_files[0], rotation=args.rotation)
-        sky_mask = MaskProcessor.load(mask_path, target_shape=_first.shape[:2], rotation=args.rotation)
-        print(f"  蒙版       : {mask_path.name}  形状={sky_mask.shape}")
+        print("⚠️  蒙版功能已临时禁用，忽略 --mask / --fg-mode 参数")
 
     # 初始化引擎
     fg_mode = StackMode.COMET if getattr(args, 'fg_mode', 'average') == 'comet' else StackMode.AVERAGE
@@ -276,6 +270,11 @@ def cmd_stack(args):
     if args.remove_satellites:
         print(f"卫星划痕  检测到: {satellite_removed_count}/{total} 张")
 
+    success_count = total - len(failed_files)
+    if success_count == 0:
+        print("错误: 没有成功读取任何图像，请检查 RAW/TIFF 格式是否受支持，或文件是否已损坏")
+        return 1
+
     # 应用间隔填充 + 获取最终结果
     if args.fill_gaps:
         print("应用间隔填充...")
@@ -314,8 +313,8 @@ def cmd_stack(args):
         stack_mode=stack_mode,
         enable_gap_filling=args.fill_gaps,
         comet_fade_factor=args.fade if stack_mode == StackMode.COMET else None,
-        has_mask=args.mask is not None,
-        fg_mode=fg_mode if args.mask is not None else None,
+        has_mask=False,
+        fg_mode=None,
     )
     tiff_path = output_dir / output_filename
     print(f"保存 TIFF: {tiff_path.name} ...")
@@ -428,10 +427,10 @@ def build_parser():
                          choices=[0, 90, 180, 270],
                          help="顺时针旋转角度，竖拍素材用 90 或 270（默认: 0）")
     p_stack.add_argument("--mask", default=None,
-                         help="天空蒙版 PNG 路径（白=天空用所选模式，黑=地景用 --fg-mode）")
+                         help="天空蒙版 PNG 路径（功能已临时禁用）")
     p_stack.add_argument("--fg-mode", default="average",
                          choices=["average", "comet"],
-                         help="蒙版地景区域的堆栈模式（默认: average）")
+                         help="蒙版地景区域的堆栈模式（功能已临时禁用）")
 
     # ── export ────────────────────────────────
     p_export = sub.add_parser("export", help="转换/导出图像")

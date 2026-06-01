@@ -608,7 +608,7 @@ PyInstaller>=5.0.0      # 打包
 - 完整 UI
 - 导出功能
 
-#### v1.0.0 - Release（Week 8）
+#### v1.0.1 - Release（Week 8）
 - 所有核心功能
 - 性能优化
 - 完整测试

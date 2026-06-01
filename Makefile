@@ -1,4 +1,4 @@
-.PHONY: help format lint test clean install dev
+.PHONY: help format lint test clean install dev build-pkg
 
 help:  ## 显示帮助信息
 	@echo "可用命令:"
@@ -44,3 +44,6 @@ run:  ## 运行应用
 
 build:  ## 构建应用
 	./build_and_sign.sh
+
+build-pkg:  ## 构建未签名 PKG 安装包
+	./build_pkg.sh

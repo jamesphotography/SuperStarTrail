@@ -75,3 +75,20 @@ def test_load_non_png(tmp_path):
     img.save(jpg_path)
     with pytest.raises(ValueError):
         MaskProcessor.load(jpg_path, target_shape=(100, 200))
+
+
+def test_load_soft_mask_reduces_transition_band(tmp_path):
+    """软边蒙版应被收敛成较窄的过渡带，减少融合发灰"""
+    gradient = np.tile(np.linspace(0, 255, 100, dtype=np.uint8), (20, 1))
+    path = tmp_path / "soft_mask.png"
+    Image.fromarray(gradient, mode="L").save(path)
+
+    result = MaskProcessor.load(path, target_shape=(20, 100))
+
+    transition_cols = np.where(
+        np.any((result > 0.1) & (result < 0.9), axis=0)
+    )[0]
+
+    assert result[:, 0].max() < 0.05
+    assert result[:, -1].min() > 0.95
+    assert len(transition_cols) < 20

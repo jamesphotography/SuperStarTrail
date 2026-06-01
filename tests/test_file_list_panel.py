@@ -97,6 +97,19 @@ class TestFileListPanel(unittest.TestCase):
             ["a.jpg", "b.cr2", "c.jpg"],
         )
 
+    def test_load_folder_includes_cr3_and_tiff(self):
+        """文件列表应识别 CR3 与 TIFF。"""
+        self._create_files("a.CR3", "b.tiff", "c.jpg", "ignore.bmp")
+
+        with patch("ui.panels.file_list_panel.get_settings", return_value=_FakeSettings()):
+            panel = self._make_panel()
+            panel._load_folder(str(self.folder))
+
+        self.assertEqual(
+            [path.name for path in panel.get_all_files()],
+            ["a.CR3", "b.tiff", "c.jpg"],
+        )
+
     def test_rotation_change_does_not_emit_first_file_preview(self):
         """旋转改变时不应强制把预览切回第一张"""
         with patch("ui.panels.file_list_panel.get_settings", return_value=_FakeSettings()):
@@ -108,3 +121,14 @@ class TestFileListPanel(unittest.TestCase):
             panel._on_rotation_changed(1)
 
         self.assertEqual(clicked, [])
+
+    def test_mask_feature_disabled(self):
+        """蒙版功能临时下线时，UI 应禁用且处理流程拿不到蒙版路径"""
+        with patch("ui.panels.file_list_panel.get_settings", return_value=_FakeSettings()):
+            panel = self._make_panel()
+            panel._mask_path = Path("/tmp/test_mask.png")
+
+        self.assertFalse(panel.btn_select_mask.isEnabled())
+        self.assertFalse(panel.btn_clear_mask.isEnabled())
+        self.assertEqual(panel.label_mask.text(), "蒙版功能已临时禁用")
+        self.assertIsNone(panel.get_mask_path())

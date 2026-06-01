@@ -329,10 +329,14 @@ class ProcessThread(QThread):
                 self.status_message.emit(status)
 
                 # 每处理 3 张图片更新一次预览（不应用填充，加快速度）
-                if (i + 1) % 3 == 0 or i == total - 1:
+                if ((i + 1) % 3 == 0 or i == total - 1) and engine.count > 0:
                     logger.info(f"更新预览 ({i+1}/{total})")
                     preview = engine.get_result(apply_gap_filling=False)
                     self.preview_update.emit(preview)
+
+            success_count = total - len(failed_files)
+            if success_count == 0:
+                raise ValueError("没有成功读取任何图像，请检查 RAW/TIFF 格式是否受支持，或文件是否已损坏")
 
             # 获取最终结果
             if not self._stop_event.is_set():
@@ -480,7 +484,7 @@ class MainWindow(QMainWindow):
         self.tr = get_translator()
 
         self.setWindowTitle(f"{self.tr.tr('app_name')} by James Zhen Yu")
-        self.setMinimumSize(900, 600)
+        self.setMinimumSize(960, 640)
         self.showMaximized()
 
         # 设置窗口图标
@@ -513,44 +517,67 @@ class MainWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        """初始化用户界面"""
+        """初始化用户界面（三栏布局：左侧文件栏 / 中间预览 / 右侧参数栏）"""
+        from ui.styles import COLORS
         # 应用全局样式表
         self.setStyleSheet(get_complete_stylesheet())
 
-        # 创建主布局
+        # 主容器
         main_widget = QWidget()
+        main_widget.setStyleSheet(f"background-color: {COLORS['bg_base']};")
         self.setCentralWidget(main_widget)
         main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         main_widget.setLayout(main_layout)
 
-        # 创建内容分割器（左右布局）
+        # ── 三栏 QSplitter ─────────────────────────────────────────────────────
         content_splitter = QSplitter(Qt.Horizontal)
+        content_splitter.setHandleWidth(1)
+        content_splitter.setStyleSheet(f"""
+            QSplitter::handle {{
+                background-color: {COLORS['border']};
+            }}
+        """)
 
-        # 创建左侧面板容器
-        left_panel = QWidget()
-        left_panel.setMinimumWidth(420)  # 设置最小宽度，避免太窄
-        left_layout = QVBoxLayout()
-        left_panel.setLayout(left_layout)
-
-        # 创建各个 Panel
+        # ── 左侧文件管理栏 ──────────────────────────────────────────────────────
         self.file_list_panel = FileListPanel(self.tr)
+        self.file_list_panel.setMinimumWidth(220)
+        self.file_list_panel.setMaximumWidth(320)
+        self.file_list_panel.setStyleSheet(
+            f"background-color: {COLORS['bg_sidebar']}; border: none;"
+        )
+
+        # ── 中间预览区（弹性，占主要空间） ─────────────────────────────────────
+        self.preview_panel = PreviewPanel(self.tr)
+
+        # ── 右侧参数控制栏 ──────────────────────────────────────────────────────
         self.params_panel = ParametersPanel(self.tr)
         self.control_panel = ControlPanel(self.tr)
 
-        # 添加到左侧布局
-        left_layout.addWidget(self.file_list_panel)
-        left_layout.addWidget(self.params_panel)
-        left_layout.addWidget(self.control_panel)
-        left_layout.addStretch()
+        right_panel = QWidget()
+        right_panel.setMinimumWidth(240)
+        right_panel.setMaximumWidth(320)
+        right_panel.setStyleSheet(
+            f"background-color: {COLORS['bg_sidebar']}; border: none;"
+        )
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        right_layout.addWidget(self.params_panel, stretch=1)
+        right_layout.addWidget(self.control_panel)
+        right_panel.setLayout(right_layout)
 
-        # 创建右侧面板
-        self.preview_panel = PreviewPanel(self.tr)
-
-        # 添加到分割器
-        content_splitter.addWidget(left_panel)
+        # 加入分割器
+        content_splitter.addWidget(self.file_list_panel)
         content_splitter.addWidget(self.preview_panel)
-        content_splitter.setStretchFactor(0, 1)  # 左侧占 1/3
-        content_splitter.setStretchFactor(1, 2)  # 右侧占 2/3
+        content_splitter.addWidget(right_panel)
+
+        # 比例：左 260 / 中弹性 / 右 280
+        content_splitter.setStretchFactor(0, 0)  # 左：固定
+        content_splitter.setStretchFactor(1, 1)  # 中：弹性
+        content_splitter.setStretchFactor(2, 0)  # 右：固定
+        content_splitter.setSizes([260, 9999, 280])
 
         main_layout.addWidget(content_splitter)
 
@@ -566,10 +593,7 @@ class MainWindow(QMainWindow):
         self.file_list_panel.files_selected.connect(self._on_files_selected)
         self.file_list_panel.file_clicked.connect(self._preview_single_file)
         self.file_list_panel.rotation_changed.connect(self._on_rotation_changed_preview)
-        self.file_list_panel.mask_path_changed.connect(self._on_mask_path_changed)
-        self.file_list_panel.mask_path_changed.connect(
-            lambda p: self.params_panel.set_fg_mode_visible(p is not None)
-        )
+        self.params_panel.set_fg_mode_visible(False)
 
         # ControlPanel 信号
         self.control_panel.start_clicked.connect(self.start_processing)
@@ -608,22 +632,9 @@ class MainWindow(QMainWindow):
         """预览线程完成回调"""
         if file_path != self._current_preview_file:
             return
-
-        # 如果有蒙版，加载并传给预览做叠加显示
         mask = None
-        mask_path = self.file_list_panel.get_mask_path()
-        if mask_path is not None:
-            try:
-                from core.mask_processor import MaskProcessor
-                mask = MaskProcessor.load(
-                    mask_path,
-                    target_shape=img.shape[:2],
-                    rotation=self.file_list_panel.get_rotation(),
-                )
-            except Exception as e:
-                logger.warning(f"蒙版预览加载失败: {e}")
-
         self.preview_panel.update_preview(img, mask=mask)
+        self.preview_panel.set_status_file(file_path.name)
         logger.info(f"预览文件: {file_path.name}")
 
     def _prune_old_preview_threads(self):
@@ -700,8 +711,8 @@ class MainWindow(QMainWindow):
             translator=self.tr,
             enable_satellite_removal=self.params_panel.is_satellite_removal_enabled(),
             rotation=self.file_list_panel.get_rotation(),
-            mask_path=self.file_list_panel.get_mask_path(),
-            fg_mode=self.params_panel.get_fg_mode(),
+            mask_path=None,
+            fg_mode=None,
         )
 
         # 连接信号

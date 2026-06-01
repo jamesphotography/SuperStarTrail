@@ -1,25 +1,24 @@
 """
-预览面板
-负责预览图像显示、日志输出和操作按钮
+预览面板（v2 — 专业摄影软件风格）
+- 无顶部标题（标题在左栏）
+- 预览区无边框、填满中央空间
+- 底部状态栏：文件名 + 像素信息 + 日志折叠按钮
+- 日志抽屉：默认折叠，处理时自动展开
 """
-
 import numpy as np
 from pathlib import Path
 from typing import Optional
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QTextEdit, QApplication
+    QLabel, QPushButton, QTextEdit, QApplication, QSizePolicy,
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap, QImage
 from i18n.translator import Translator
 from ui.styles import (
-    PRIMARY_BUTTON_STYLE,
-    SECONDARY_BUTTON_STYLE,
-    TITLE_LABEL_STYLE,
-    SUBTITLE_LABEL_STYLE,
     PREVIEW_AREA_STYLE,
     LOG_TEXT_STYLE,
+    COLORS,
 )
 from utils.settings import get_settings
 from utils.logger import setup_logger
@@ -35,63 +34,33 @@ except ImportError:
 
 
 class PreviewPanel(QWidget):
-    """预览面板"""
-
-    # 信号定义
-    # (移除了播放视频和打开输出目录的信号，这些功能已移至文件列表面板)
+    """预览面板（中央大图区 + 底部可折叠日志抽屉）"""
 
     def __init__(self, translator: Translator, parent=None):
         super().__init__(parent)
         self.tr = translator
 
-        # 预览缓存（用于亮度拉伸优化）
         self._preview_cache_valid = False
         self._preview_stretch_cache = None
-        self._current_pixmap: Optional[QPixmap] = None  # 保存原始 pixmap 供 resize 时重新缩放
+        self._current_pixmap: Optional[QPixmap] = None
+        self._log_expanded = False
+        self._current_image_shape: Optional[tuple] = None
 
         self._init_ui()
 
     def _init_ui(self):
-        """初始化 UI"""
         layout = QVBoxLayout()
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         self.setLayout(layout)
 
-        # 标题栏（带 Logo）
-        title_layout = QHBoxLayout()
-        title_layout.addStretch()
-
-        # 标题文字（第一部分）
-        title_part1 = QLabel("彗星星轨")
-        title_part1.setStyleSheet(TITLE_LABEL_STYLE)
-        title_layout.addWidget(title_part1)
-
-        # Logo 图标（放在中间）
-        logo_path = Path(__file__).parent.parent.parent / "resources" / "logo.png"
-        if logo_path.exists():
-            logo_label = QLabel()
-            logo_pixmap = QPixmap(str(logo_path)).scaled(
-                32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
-            logo_label.setPixmap(logo_pixmap)
-            title_layout.addWidget(logo_label)
-
-        # 标题文字（第二部分）
-        title_part2 = QLabel("一键生成星轨照片与延时视频")
-        title_part2.setStyleSheet(TITLE_LABEL_STYLE)
-        title_layout.addWidget(title_part2)
-        title_layout.addStretch()
-
-        layout.addLayout(title_layout)
-
-        # 预览区域（3:2 比例，更接近照片原始比例）
+        # ── 预览图（填满，无边框） ─────────────────────────────────────────────
         self.preview_label = QLabel()
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet(PREVIEW_AREA_STYLE)
-        self.preview_label.setMinimumSize(800, 533)  # 3:2 比例最小尺寸
-        # 不设置最大高度，允许随窗口放大
+        self.preview_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.preview_label.setMinimumSize(400, 300)
 
-        # 加载默认背景图片
         bg_path = Path(__file__).parent.parent.parent / "resources" / "bg.jpg"
         if bg_path.exists():
             self._current_pixmap = QPixmap(str(bg_path))
@@ -102,125 +71,140 @@ class PreviewPanel(QWidget):
                 )
             )
         else:
-            self.preview_label.setText(self.tr.tr("drop_files_here"))
+            self.preview_label.setText("Select a directory to begin")
 
-        layout.addWidget(self.preview_label, stretch=1)  # 拉伸因子让预览区域占据剩余空间
+        layout.addWidget(self.preview_label, stretch=1)
 
-        # 添加日志输出区域
-        log_label = QLabel(self.tr.tr('processing_log'))
-        log_label.setStyleSheet(SUBTITLE_LABEL_STYLE)
-        layout.addWidget(log_label)
+        # ── 底部状态栏（24px 固定高度） ───────────────────────────────────────
+        status_bar = QWidget()
+        status_bar.setFixedHeight(26)
+        status_bar.setStyleSheet(f"""
+            background-color: {COLORS['bg_sidebar']};
+            border-top: 1px solid {COLORS['border']};
+        """)
+        sb_layout = QHBoxLayout(status_bar)
+        sb_layout.setContentsMargins(12, 0, 12, 0)
+        sb_layout.setSpacing(16)
 
+        # 文件名
+        self._file_label = QLabel("—")
+        self._file_label.setStyleSheet(
+            f"font-size: 11px; color: {COLORS['text_secondary']};"
+            f" font-family: 'Menlo','Monaco',monospace; background: transparent;"
+        )
+        sb_layout.addWidget(self._file_label)
+
+        # 像素尺寸
+        self._dim_label = QLabel("")
+        self._dim_label.setStyleSheet(
+            f"font-size: 10px; color: {COLORS['text_muted']}; background: transparent;"
+        )
+        sb_layout.addWidget(self._dim_label)
+
+        sb_layout.addStretch()
+
+        # 日志折叠按钮
+        self._log_btn = QPushButton("Processing Log  ›")
+        self._log_btn.setFixedHeight(20)
+        self._log_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                color: {COLORS['text_muted']};
+                border: none;
+                font-size: 10px;
+                font-weight: 500;
+                letter-spacing: 0.5px;
+                padding: 0 4px;
+            }}
+            QPushButton:hover {{
+                color: {COLORS['text_secondary']};
+            }}
+        """)
+        self._log_btn.clicked.connect(self._toggle_log)
+        sb_layout.addWidget(self._log_btn)
+
+        layout.addWidget(status_bar)
+
+        # ── 日志抽屉（默认折叠） ───────────────────────────────────────────────
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setFixedHeight(120)  # 固定高度 120px，避免遮挡预览
+        self.log_text.setFixedHeight(160)
         self.log_text.setStyleSheet(LOG_TEXT_STYLE)
+        self.log_text.hide()
+        layout.addWidget(self.log_text)
 
-        # 设置默认使用说明
         self._set_default_instructions()
 
-        layout.addWidget(self.log_text)  # 不添加拉伸因子，保持固定大小
+    # ── 日志折叠 ──────────────────────────────────────────────────────────────
+    def _toggle_log(self):
+        self._log_expanded = not self._log_expanded
+        if self._log_expanded:
+            self.log_text.show()
+            self._log_btn.setText("Processing Log  ›  ▾")
+        else:
+            self.log_text.hide()
+            self._log_btn.setText("Processing Log  ›")
 
+    # ── 图像拉伸 ──────────────────────────────────────────────────────────────
     @staticmethod
     def _stretch_for_preview(image: np.ndarray, settings) -> np.ndarray:
-        """
-        将 uint16 图像拉伸为适合显示的 uint8。
-
-        优先使用 astropy ZScaleInterval + AsinhStretch 组合：
-        - ZScale 自动找最优显示范围（天文标准，对星野效果极好）
-        - AsinhStretch 非线性拉伸，保留亮星细节的同时提亮暗星
-
-        若 astropy 不可用则回退到简单百分位数拉伸。
-        """
         if _ASTROPY_AVAILABLE:
             try:
-                # ZScale 基于亮度通道计算显示范围（对多通道 RGB 更准确）
                 lum = np.mean(image, axis=2).astype(np.float32) if image.ndim == 3 else image.astype(np.float32)
                 vmin, vmax = ZScaleInterval().get_limits(lum)
                 scale = max(float(vmax - vmin), 1.0)
-
-                # 归一化到 [0, 1]
-                img_float = np.clip(
-                    (image.astype(np.float32) - vmin) / scale, 0.0, 1.0
-                )
-
-                # AsinhStretch：a=0.1 对星野广角场景效果好
-                # a 越小拉伸越激进（暗区提亮越多），0.05~0.2 均可
-                img_stretched = AsinhStretch(a=0.1)(img_float)
-
-                logger.debug(f"ZScale+Asinh 拉伸: vmin={vmin:.0f}, vmax={vmax:.0f}")
-                return (np.clip(img_stretched, 0.0, 1.0) * 255).astype(np.uint8)
-
+                img_f = np.clip((image.astype(np.float32) - vmin) / scale, 0.0, 1.0)
+                stretched = AsinhStretch(a=0.1)(img_f)
+                return (np.clip(stretched, 0.0, 1.0) * 255).astype(np.uint8)
             except Exception as e:
-                logger.debug(f"astropy 拉伸失败，回退到百分位数: {e}")
+                logger.debug(f"astropy 拉伸失败: {e}")
 
-        # 回退：简单百分位数拉伸
         p_low, p_high = settings.get_preview_percentiles()
-        v_low = np.percentile(image, p_low)
+        v_low  = np.percentile(image, p_low)
         v_high = np.percentile(image, p_high)
-        scale = max(float(v_high - v_low), 1.0)
+        scale  = max(float(v_high - v_low), 1.0)
         return np.clip((image.astype(np.float32) - v_low) / scale * 255, 0, 255).astype(np.uint8)
 
+    # ── 预览更新 ──────────────────────────────────────────────────────────────
     def update_preview(self, image: np.ndarray, mask: Optional[np.ndarray] = None):
-        """更新预览图像（自动曝光优化）
-
-        Args:
-            image: uint16 RGB 图像数组
-            mask:  可选 float32 蒙版 (H, W)，1.0=天空，0.0=地景；
-                   有蒙版时叠加半透明蓝色覆盖天空区域供确认
-        """
         import cv2
-
-        # 从配置获取预览参数
         settings = get_settings()
         max_size = settings.get_preview_max_size()
 
-        # 先缩放再做亮度拉伸，大幅提升速度
         h, w = image.shape[:2]
+        self._current_image_shape = (h, w)
 
         if max(h, w) > max_size:
             scale = max_size / max(h, w)
-            new_h, new_w = int(h * scale), int(w * scale)
-            image_small = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            image_small = cv2.resize(image, (int(w * scale), int(h * scale)),
+                                     interpolation=cv2.INTER_AREA)
         else:
             image_small = image
 
-        # 转换为 8-bit 用于显示
         if image_small.dtype == np.uint16:
-            img_8bit = self._stretch_for_preview(image_small, settings)
+            img_8 = self._stretch_for_preview(image_small, settings)
         else:
-            img_8bit = image_small.copy()
+            img_8 = image_small.copy()
 
-        # 叠加蒙版预览：天空区域加半透明蓝色
         if mask is not None:
-            ph, pw = img_8bit.shape[:2]
-            mask_small = cv2.resize(mask, (pw, ph), interpolation=cv2.INTER_AREA)
-            alpha = (mask_small * 0.45).astype(np.float32)[:, :, np.newaxis]  # 45% 透明度
-            tint = np.zeros_like(img_8bit, dtype=np.float32)
-            tint[:, :, 2] = 200  # 纯蓝色覆盖层
-            img_8bit = np.clip(
-                img_8bit.astype(np.float32) * (1 - alpha) + tint * alpha, 0, 255
-            ).astype(np.uint8)
+            ph, pw = img_8.shape[:2]
+            m = cv2.resize(mask, (pw, ph), interpolation=cv2.INTER_AREA)
+            alpha = (m * 0.45).astype(np.float32)[:, :, np.newaxis]
+            tint = np.zeros_like(img_8, dtype=np.float32)
+            tint[:, :, 2] = 200
+            img_8 = np.clip(img_8.astype(np.float32) * (1 - alpha) + tint * alpha, 0, 255).astype(np.uint8)
 
-        # 转换为 QPixmap
-        h, w, c = img_8bit.shape
-        bytes_per_line = c * w
-        q_img = QImage(bytes(img_8bit.tobytes()), w, h, bytes_per_line, QImage.Format_RGB888)
+        ih, iw, c = img_8.shape
+        q_img = QImage(bytes(img_8.tobytes()), iw, ih, c * iw, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
-
-        # 保存原始 pixmap，并缩放到当前 label 大小
         self._current_pixmap = pixmap
         self.preview_label.setPixmap(
             pixmap.scaled(self.preview_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )
-
-        # 强制刷新UI
         self.preview_label.update()
         QApplication.processEvents()
 
-
     def resizeEvent(self, event):
-        """窗口/面板大小变化时重新缩放预览图"""
         super().resizeEvent(event)
         if self._current_pixmap and not self._current_pixmap.isNull():
             self.preview_label.setPixmap(
@@ -229,27 +213,32 @@ class PreviewPanel(QWidget):
                 )
             )
 
+    # ── 状态栏更新 ────────────────────────────────────────────────────────────
+    def set_status_file(self, filename: str):
+        self._file_label.setText(filename)
+        if self._current_image_shape:
+            h, w = self._current_image_shape
+            self._dim_label.setText(f"{w:,} × {h:,} px")
+
+    # ── 日志 API ──────────────────────────────────────────────────────────────
     def append_log(self, message: str):
-        """添加日志消息到日志区域"""
+        if not self._log_expanded:
+            self._toggle_log()
         self.log_text.append(message)
-        # 自动滚动到底部
         self.log_text.verticalScrollBar().setValue(
             self.log_text.verticalScrollBar().maximum()
         )
 
     def clear_log(self):
-        """清空日志"""
         self.log_text.clear()
 
     def reset_preview_cache(self):
-        """重置预览缓存（新处理开始时调用）"""
         self._preview_cache_valid = False
         self._preview_stretch_cache = None
+        self._current_image_shape = None
 
     def show_placeholder(self):
-        """显示默认背景图片"""
         self.preview_label.clear()
-        # 重新加载默认背景图片
         bg_path = Path(__file__).parent.parent.parent / "resources" / "bg.jpg"
         if bg_path.exists():
             self._current_pixmap = QPixmap(str(bg_path))
@@ -260,14 +249,16 @@ class PreviewPanel(QWidget):
             )
         else:
             self._current_pixmap = None
-            self.preview_label.setText(self.tr.tr("drop_files_here"))
+            self.preview_label.setText("Select a directory to begin")
 
     def _set_default_instructions(self):
-        """设置默认使用说明"""
-        instructions = """欢迎使用彗星星轨！快速开始：
-1. 点击「选择目录」选择包含 RAW 文件的文件夹
-2. 选择堆栈模式（Lighten 星轨 / Comet 彗星效果）
-3. 配置参数（白平衡、延时视频等）
-4. 点击「开始合成」，等待处理完成
-5. 完成后自动打开输出目录查看结果"""
+        instructions = (
+            "Welcome to SuperStarTrail\n\n"
+            "Quick Start:\n"
+            "  1. Click 'Select Directory' to choose a folder with RAW files\n"
+            "  2. Select a stack mode on the right panel (Lighten / Comet / Average)\n"
+            "  3. Configure enhancements as needed\n"
+            "  4. Click 'Begin Processing' and wait for completion\n"
+            "  5. Output folder opens automatically when done"
+        )
         self.log_text.setPlainText(instructions)
