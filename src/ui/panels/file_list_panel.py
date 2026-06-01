@@ -98,6 +98,13 @@ class FileListPanel(QWidget):
         name_col.addWidget(sub_name)
         hbox.addLayout(name_col)
         hbox.addStretch()
+        ver_label = QLabel("v1.0.2")
+        ver_label.setStyleSheet(f"""
+            font-size: 10px; color: {COLORS['text_muted']};
+            background: {COLORS['bg_elevated']};
+            border-radius: 8px; padding: 1px 7px;
+        """)
+        hbox.addWidget(ver_label)
         root.addWidget(header)
         root.addWidget(_hairline())
 
